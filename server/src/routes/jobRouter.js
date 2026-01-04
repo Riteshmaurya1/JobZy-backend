@@ -28,7 +28,7 @@ jobRouter.get("/jobs/stats", getJobQuota, getJobStats);
 jobRouter.get("/jobs", getJobQuota, getAllJobs);
 
 // POST: Create job (check quota first)
-jobRouter.post("/jobs", checkJobQuota, createJob);
+jobRouter.post("/jobs/create", checkJobQuota, createJob);
 
 // GET: Single job
 jobRouter.get("/jobs/:jobId", getJobById);
