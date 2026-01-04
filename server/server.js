@@ -10,6 +10,8 @@ const { startWorker } = require("./src/jobs/customEmailWorker");
 
 const authRouter = require("./src/routes/authRouter");
 const profileRouter = require("./src/routes/profileRouter");
+const interviewRouter = require("./src/routes/interviewRouter");
+const jobRouter = require("./src/routes/jobRouter");
 
 // Use In production.
 // const corsOptions = {
@@ -30,6 +32,8 @@ app.get("/", (req, res) => {
 // Custom Routes.
 app.use("/api/v1", authRouter);
 app.use("/api/v1", profileRouter);
+app.use("/api/v1", jobRouter);
+app.use("/api/v1", interviewRouter);
 
 // Start email queue worker
 startWorker();
