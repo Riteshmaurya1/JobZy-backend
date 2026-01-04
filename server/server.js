@@ -1,0 +1,45 @@
+require("dotenv").config();
+const PORT = process.env.PORT || 4000;
+const express = require("express");
+const app = express();
+const cors = require("cors");
+const globalErrorHandler = require("./src/middleware/globalErrorHandler");
+
+const db = require("./src/config/db-connection");
+
+const authRouter = require("./src/routes/authRouter");
+const profileRouter = require("./src/routes/profileRouter");
+
+// Use In production.
+// const corsOptions = {
+//   origin: "http://localhost:3000",
+//   credentials: true, // Allow cookies/credentials
+//   optionsSuccessStatus: 200,
+// };
+
+// Main Middlewares.
+app.use(express.json());
+app.use(cors());
+
+// Default checking route.
+app.get("/", (req, res) => {
+  res.send("Server is running!.");
+});
+
+// Custom Routes.
+app.use("/api/v1", authRouter);
+app.use("/api/v1", profileRouter);
+
+// Global error handler.
+app.use(globalErrorHandler);
+
+(async () => {
+  try {
+    await db.sync({ alter: true });
+    app.listen(PORT, () => {
+      console.log(`🌎 Server is connected on ${PORT}.`);
+    });
+  } catch (error) {
+    console.log(error);
+  }
+})();
