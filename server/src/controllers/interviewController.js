@@ -1,5 +1,9 @@
 const { Job, Interview, User } = require("../models");
 const { queueEmail } = require("../jobs/customEmailWorker");
+const {
+  interviewScheduledTemplate,
+  followUpReminderTemplate,
+} = require("../utils/emailTemplates");
 
 // POST: Schedule interview for a job
 const scheduleInterview = async (req, res, next) => {
@@ -18,14 +22,12 @@ const scheduleInterview = async (req, res, next) => {
       notes,
     } = req.body;
 
-    // Validate required fields
     if (!round || !interviewDate) {
       const error = new Error("Round and interview date are required");
       error.statusCode = 400;
       throw error;
     }
 
-    // Check if job exists and belongs to user
     const job = await Job.findOne({ where: { id: jobId, userId } });
     if (!job) {
       const error = new Error("Job not found");
@@ -33,7 +35,6 @@ const scheduleInterview = async (req, res, next) => {
       throw error;
     }
 
-    // Create interview
     const interview = await Interview.create({
       jobId,
       round,
@@ -48,16 +49,26 @@ const scheduleInterview = async (req, res, next) => {
       status: "scheduled",
     });
 
-    // Update job status
     await job.update({ status: "interview-scheduled" });
 
-    // Queue reminder email (optional - implement later with scheduling)
+    // ✅ Send interview scheduled email
     try {
       const user = await User.findByPk(userId);
-      console.log(
-        `📅 Interview scheduled for ${user.email} on ${interviewDate}`
+      const html = interviewScheduledTemplate(
+        user.name,
+        job.company,
+        job.position,
+        interview.round,
+        interview.interviewDate,
+        interview.interviewTime,
+        interview.meetingLink
       );
-      // Future: Schedule reminder email 1 day before
+      queueEmail("interview-scheduled", {
+        email: user.email,
+        name: user.name,
+        subject: `📅 Interview Scheduled: ${job.company} - ${round}`,
+        html,
+      });
     } catch (emailError) {
       console.error(
         "[Schedule Interview] Email queue failed:",
@@ -154,20 +165,8 @@ const updateInterview = async (req, res, next) => {
   try {
     const userId = req.payload.id;
     const { interviewId } = req.params;
-    const {
-      round,
-      interviewDate,
-      interviewTime,
-      interviewMode,
-      meetingLink,
-      interviewerName,
-      interviewerEmail,
-      status,
-      followUpDate,
-      notes,
-    } = req.body;
+    const updates = req.body;
 
-    // Find interview and verify ownership through job
     const interview = await Interview.findByPk(interviewId, {
       include: [
         {
@@ -184,22 +183,58 @@ const updateInterview = async (req, res, next) => {
       throw error;
     }
 
-    // Build updates object
-    const updates = {};
-    if (round !== undefined) updates.round = round;
-    if (interviewDate !== undefined) updates.interviewDate = interviewDate;
-    if (interviewTime !== undefined) updates.interviewTime = interviewTime;
-    if (interviewMode !== undefined) updates.interviewMode = interviewMode;
-    if (meetingLink !== undefined) updates.meetingLink = meetingLink;
-    if (interviewerName !== undefined)
-      updates.interviewerName = interviewerName;
-    if (interviewerEmail !== undefined)
-      updates.interviewerEmail = interviewerEmail;
-    if (status !== undefined) updates.status = status;
-    if (followUpDate !== undefined) updates.followUpDate = followUpDate;
-    if (notes !== undefined) updates.notes = notes;
+    const oldStatus = interview.status;
 
-    await interview.update(updates);
+    const allowedUpdates = {};
+    if (updates.round !== undefined) allowedUpdates.round = updates.round;
+    if (updates.interviewDate !== undefined)
+      allowedUpdates.interviewDate = updates.interviewDate;
+    if (updates.interviewTime !== undefined)
+      allowedUpdates.interviewTime = updates.interviewTime;
+    if (updates.interviewMode !== undefined)
+      allowedUpdates.interviewMode = updates.interviewMode;
+    if (updates.meetingLink !== undefined)
+      allowedUpdates.meetingLink = updates.meetingLink;
+    if (updates.interviewerName !== undefined)
+      allowedUpdates.interviewerName = updates.interviewerName;
+    if (updates.interviewerEmail !== undefined)
+      allowedUpdates.interviewerEmail = updates.interviewerEmail;
+    if (updates.status !== undefined) allowedUpdates.status = updates.status;
+    if (updates.followUpDate !== undefined)
+      allowedUpdates.followUpDate = updates.followUpDate;
+    if (updates.notes !== undefined) allowedUpdates.notes = updates.notes;
+
+    await interview.update(allowedUpdates);
+
+    // ✅ Send follow-up reminder email (if status changed to completed)
+    if (updates.status === "completed" && oldStatus !== "completed") {
+      try {
+        const user = await User.findByPk(userId);
+        const followUpDate =
+          interview.followUpDate ||
+          new Date(Date.now() + 2 * 24 * 60 * 60 * 1000); // 2 days later
+
+        const html = followUpReminderTemplate(
+          user.name,
+          interview.job.company,
+          interview.job.position,
+          interview.round,
+          interview.interviewDate
+        );
+
+        queueEmail("follow-up-reminder", {
+          email: user.email,
+          name: user.name,
+          subject: `📩 Follow-up Reminder: ${interview.job.company}`,
+          html,
+        });
+      } catch (emailError) {
+        console.error(
+          "[Update Interview] Email queue failed:",
+          emailError.message
+        );
+      }
+    }
 
     return res.status(200).json({
       success: true,

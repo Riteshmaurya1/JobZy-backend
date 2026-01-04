@@ -1,24 +1,26 @@
-const { sendEmail } = require("../services/emailService");
+// ❌ Remove this line from top
+// const { sendEmail } = require("../services/emailService");
+
 const {
   welcomeTemplate,
   loginAlertTemplate,
 } = require("../utils/emailTemplates");
 
-// In-memory queue
 const emailQueue = [];
 let isProcessing = false;
 
-// Queue email (non-blocking)
 function queueEmail(type, data) {
   emailQueue.push({ type, data, id: Date.now(), retries: 0 });
-  processQueue(); // Trigger immediate processing
+  processQueue();
 }
 
-// Process queue
 async function processQueue() {
   if (isProcessing || emailQueue.length === 0) return;
 
   isProcessing = true;
+
+  // ✅ Import inside function (lazy load - fixes circular dependency)
+  const { sendEmail } = require("../services/emailService");
 
   while (emailQueue.length > 0) {
     const job = emailQueue.shift();
@@ -26,7 +28,7 @@ async function processQueue() {
     try {
       if (job.type === "welcome") {
         const html = welcomeTemplate(job.data.name);
-        await sendEmail(job.data.email, "Welcome to Jobzy 🎉", html, true);
+        await sendEmail(job.data.email, "Welcome to JobZy 🎉", html, true);
       } else if (job.type === "login-alert") {
         const html = loginAlertTemplate(
           job.data.name,
@@ -36,19 +38,38 @@ async function processQueue() {
         );
         await sendEmail(
           job.data.email,
-          "Jobzy – New login detected",
+          "JobZy – New login detected",
           html,
           true
         );
+      }
+      // Job created email
+      else if (job.type === "job-created") {
+        await sendEmail(job.data.email, job.data.subject, job.data.html, true);
+      }
+      // Job updated email
+      else if (job.type === "job-updated") {
+        await sendEmail(job.data.email, job.data.subject, job.data.html, true);
+      }
+      // Interview scheduled email
+      else if (job.type === "interview-scheduled") {
+        await sendEmail(job.data.email, job.data.subject, job.data.html, true);
+      }
+      // Interview reminder email
+      else if (job.type === "interview-reminder") {
+        await sendEmail(job.data.email, job.data.subject, job.data.html, true);
+      }
+      // Follow-up reminder email
+      else if (job.type === "follow-up-reminder") {
+        await sendEmail(job.data.email, job.data.subject, job.data.html, true);
       }
     } catch (error) {
       console.error(`[Email Worker] Failed: ${job.type} to ${job.data.email}`);
       console.error(`[Email Worker] Error: ${error.message}`);
 
-      // Retry logic (max 3 attempts)
       if (job.retries < 3) {
         job.retries++;
-        emailQueue.push(job); // Re-queue
+        emailQueue.push(job);
         console.log(
           `[Email Worker] Retry ${job.retries}/3 queued for ${job.data.email}`
         );
@@ -63,13 +84,12 @@ async function processQueue() {
   isProcessing = false;
 }
 
-// Background interval for retry/fallback
 function startWorker() {
   setInterval(() => {
     if (!isProcessing && emailQueue.length > 0) {
       processQueue();
     }
-  }, 5000); // Check every 5 seconds
+  }, 5000);
 
   console.log("✅ Email worker started");
 }

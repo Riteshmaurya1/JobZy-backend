@@ -1,4 +1,9 @@
 const { Job, Interview, User } = require("../models");
+const { queueEmail } = require("../jobs/customEmailWorker");
+const {
+  jobCreatedTemplate,
+  jobUpdatedTemplate,
+} = require("../utils/emailTemplates");
 
 // POST: Create new job application
 const createJob = async (req, res, next) => {
@@ -17,14 +22,12 @@ const createJob = async (req, res, next) => {
       resumeVersion,
     } = req.body;
 
-    // Validate required fields
     if (!company || !position) {
       const error = new Error("Company and position are required");
       error.statusCode = 400;
       throw error;
     }
 
-    // Quota already checked by middleware, safe to create
     const job = await Job.create({
       userId,
       company,
@@ -40,9 +43,26 @@ const createJob = async (req, res, next) => {
       status: "applied",
     });
 
-    // Increment user's job count
     const user = await User.findByPk(userId);
     await user.increment("monthlyJobsUsed");
+
+    // ✅ Send job created email
+    try {
+      const html = jobCreatedTemplate(
+        user.name,
+        job.company,
+        job.position,
+        job.appliedDate
+      );
+      queueEmail("job-created", {
+        email: user.email,
+        name: user.name,
+        subject: `✅ Job Application Tracked: ${company}`,
+        html,
+      });
+    } catch (emailError) {
+      console.error("[Create Job] Email queue failed:", emailError.message);
+    }
 
     return res.status(201).json({
       success: true,
@@ -54,7 +74,7 @@ const createJob = async (req, res, next) => {
         status: job.status,
         appliedDate: job.appliedDate,
       },
-      quota: req.userQuota, // Include updated quota info
+      quota: req.userQuota,
     });
   } catch (error) {
     next(error);
@@ -160,7 +180,8 @@ const updateJob = async (req, res, next) => {
       throw error;
     }
 
-    // Only update provided fields
+    const oldStatus = job.status;
+
     const allowedFields = [
       "company",
       "position",
@@ -183,6 +204,28 @@ const updateJob = async (req, res, next) => {
     });
 
     await job.update(filteredUpdates);
+
+    // ✅ Send status update email (only if status changed)
+    if (updates.status && updates.status !== oldStatus) {
+      try {
+        const user = await User.findByPk(userId);
+        const html = jobUpdatedTemplate(
+          user.name,
+          job.company,
+          job.position,
+          oldStatus,
+          job.status
+        );
+        queueEmail("job-updated", {
+          email: user.email,
+          name: user.name,
+          subject: `📊 Job Status Updated: ${job.company}`,
+          html,
+        });
+      } catch (emailError) {
+        console.error("[Update Job] Email queue failed:", emailError.message);
+      }
+    }
 
     return res.status(200).json({
       success: true,
