@@ -6,6 +6,7 @@ const cors = require("cors");
 const globalErrorHandler = require("./src/middleware/globalErrorHandler");
 
 const db = require("./src/config/db-connection");
+const { startWorker } = require("./src/jobs/customEmailWorker");
 
 const authRouter = require("./src/routes/authRouter");
 const profileRouter = require("./src/routes/profileRouter");
@@ -29,6 +30,9 @@ app.get("/", (req, res) => {
 // Custom Routes.
 app.use("/api/v1", authRouter);
 app.use("/api/v1", profileRouter);
+
+// Start email queue worker
+startWorker();
 
 // Global error handler.
 app.use(globalErrorHandler);
