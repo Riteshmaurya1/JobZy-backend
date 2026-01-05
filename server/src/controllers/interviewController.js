@@ -1,4 +1,5 @@
 const { Job, Interview, User } = require("../models");
+const { Op } = require("sequelize");
 const { queueEmail } = require("../jobs/customEmailWorker");
 const {
   interviewScheduledTemplate,
@@ -10,6 +11,8 @@ const scheduleInterview = async (req, res, next) => {
   try {
     const userId = req.payload.id;
     const { jobId } = req.params;
+    console.log("userId from token:", req.payload.id);
+    console.log("jobId from params:", jobId);
     const {
       round,
       interviewDate,
@@ -22,19 +25,24 @@ const scheduleInterview = async (req, res, next) => {
       notes,
     } = req.body;
 
+    // Validation
     if (!round || !interviewDate) {
-      const error = new Error("Round and interview date are required");
-      error.statusCode = 400;
-      throw error;
+      return res.status(400).json({
+        success: false,
+        message: "Round and interview date are required",
+      });
     }
 
+    // Verify job belongs to user
     const job = await Job.findOne({ where: { id: jobId, userId } });
     if (!job) {
-      const error = new Error("Job not found");
-      error.statusCode = 404;
-      throw error;
+      return res.status(404).json({
+        success: false,
+        message: "Job not found",
+      });
     }
 
+    // Create interview
     const interview = await Interview.create({
       jobId,
       round,
@@ -49,7 +57,11 @@ const scheduleInterview = async (req, res, next) => {
       status: "scheduled",
     });
 
+    // ✅ UPDATE JOB STATUS
     await job.update({ status: "interview-scheduled" });
+
+    // ✅ INCREMENT INTERVIEW COUNTER
+    await req.user.increment("totalInterviews");
 
     // ✅ Send interview scheduled email
     try {
@@ -64,6 +76,7 @@ const scheduleInterview = async (req, res, next) => {
         interview.meetingLink
       );
       queueEmail("interview-scheduled", {
+        userId: user.id, // ✅ Add userId for quota check
         email: user.email,
         name: user.name,
         subject: `📅 Interview Scheduled: ${job.company} - ${round}`,
@@ -86,15 +99,17 @@ const scheduleInterview = async (req, res, next) => {
         interviewDate: interview.interviewDate,
         interviewTime: interview.interviewTime,
         interviewMode: interview.interviewMode,
+        meetingLink: interview.meetingLink,
         status: interview.status,
       },
+      quota: req.quota, // ✅ Show remaining quota
     });
   } catch (error) {
     next(error);
   }
 };
 
-// GET: Get all interviews for a job
+// GET: All interviews for a job
 const getInterviewsByJob = async (req, res, next) => {
   try {
     const userId = req.payload.id;
@@ -103,9 +118,10 @@ const getInterviewsByJob = async (req, res, next) => {
     // Verify job belongs to user
     const job = await Job.findOne({ where: { id: jobId, userId } });
     if (!job) {
-      const error = new Error("Job not found");
-      error.statusCode = 404;
-      throw error;
+      return res.status(404).json({
+        success: false,
+        message: "Job not found",
+      });
     }
 
     const interviews = await Interview.findAll({
@@ -120,6 +136,7 @@ const getInterviewsByJob = async (req, res, next) => {
         id: job.id,
         company: job.company,
         position: job.position,
+        status: job.status,
       },
       interviews,
     });
@@ -128,7 +145,7 @@ const getInterviewsByJob = async (req, res, next) => {
   }
 };
 
-// GET: Get single interview by ID
+// GET: Single interview by ID
 const getInterviewById = async (req, res, next) => {
   try {
     const userId = req.payload.id;
@@ -146,9 +163,10 @@ const getInterviewById = async (req, res, next) => {
     });
 
     if (!interview) {
-      const error = new Error("Interview not found");
-      error.statusCode = 404;
-      throw error;
+      return res.status(404).json({
+        success: false,
+        message: "Interview not found",
+      });
     }
 
     return res.status(200).json({
@@ -178,31 +196,34 @@ const updateInterview = async (req, res, next) => {
     });
 
     if (!interview) {
-      const error = new Error("Interview not found");
-      error.statusCode = 404;
-      throw error;
+      return res.status(404).json({
+        success: false,
+        message: "Interview not found",
+      });
     }
 
     const oldStatus = interview.status;
 
+    // Filter allowed updates
     const allowedUpdates = {};
-    if (updates.round !== undefined) allowedUpdates.round = updates.round;
-    if (updates.interviewDate !== undefined)
-      allowedUpdates.interviewDate = updates.interviewDate;
-    if (updates.interviewTime !== undefined)
-      allowedUpdates.interviewTime = updates.interviewTime;
-    if (updates.interviewMode !== undefined)
-      allowedUpdates.interviewMode = updates.interviewMode;
-    if (updates.meetingLink !== undefined)
-      allowedUpdates.meetingLink = updates.meetingLink;
-    if (updates.interviewerName !== undefined)
-      allowedUpdates.interviewerName = updates.interviewerName;
-    if (updates.interviewerEmail !== undefined)
-      allowedUpdates.interviewerEmail = updates.interviewerEmail;
-    if (updates.status !== undefined) allowedUpdates.status = updates.status;
-    if (updates.followUpDate !== undefined)
-      allowedUpdates.followUpDate = updates.followUpDate;
-    if (updates.notes !== undefined) allowedUpdates.notes = updates.notes;
+    const allowedFields = [
+      "round",
+      "interviewDate",
+      "interviewTime",
+      "interviewMode",
+      "meetingLink",
+      "interviewerName",
+      "interviewerEmail",
+      "status",
+      "followUpDate",
+      "notes",
+    ];
+
+    allowedFields.forEach((field) => {
+      if (updates[field] !== undefined) {
+        allowedUpdates[field] = updates[field];
+      }
+    });
 
     await interview.update(allowedUpdates);
 
@@ -223,6 +244,7 @@ const updateInterview = async (req, res, next) => {
         );
 
         queueEmail("follow-up-reminder", {
+          userId: user.id, // ✅ Add userId for quota check
           email: user.email,
           name: user.name,
           subject: `📩 Follow-up Reminder: ${interview.job.company}`,
@@ -264,12 +286,19 @@ const deleteInterview = async (req, res, next) => {
     });
 
     if (!interview) {
-      const error = new Error("Interview not found");
-      error.statusCode = 404;
-      throw error;
+      return res.status(404).json({
+        success: false,
+        message: "Interview not found",
+      });
     }
 
     await interview.destroy();
+
+    // ✅ Optional: Decrement counter
+    const user = await User.findByPk(userId);
+    if (user && user.totalInterviews > 0) {
+      await user.decrement("totalInterviews");
+    }
 
     return res.status(200).json({
       success: true,
@@ -280,11 +309,10 @@ const deleteInterview = async (req, res, next) => {
   }
 };
 
-// GET: Get upcoming interviews (all jobs)
+// GET: Upcoming interviews (all jobs)
 const getUpcomingInterviews = async (req, res, next) => {
   try {
     const userId = req.payload.id;
-    const { Op } = require("sequelize");
 
     const interviews = await Interview.findAll({
       include: [
@@ -311,6 +339,57 @@ const getUpcomingInterviews = async (req, res, next) => {
       success: true,
       count: interviews.length,
       interviews,
+      quota: req.quota, // ✅ Include quota info
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// GET: All interviews (with filters)
+const getAllInterviews = async (req, res, next) => {
+  try {
+    const userId = req.payload.id;
+    const {
+      status,
+      dateFrom,
+      dateTo,
+      sortBy = "interviewDate",
+      order = "ASC",
+    } = req.query;
+
+    // Build where clause
+    const where = {};
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (dateFrom || dateTo) {
+      where.interviewDate = {};
+      if (dateFrom) where.interviewDate[Op.gte] = dateFrom;
+      if (dateTo) where.interviewDate[Op.lte] = dateTo;
+    }
+
+    // Fetch interviews
+    const interviews = await Interview.findAll({
+      where,
+      include: [
+        {
+          model: Job,
+          as: "job",
+          where: { userId },
+          attributes: ["id", "company", "position", "status"],
+        },
+      ],
+      order: [[sortBy, order]],
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: interviews.length,
+      interviews,
+      quota: req.quota, // ✅ Include quota info
     });
   } catch (error) {
     next(error);
@@ -324,4 +403,5 @@ module.exports = {
   updateInterview,
   deleteInterview,
   getUpcomingInterviews,
+  getAllInterviews,
 };
