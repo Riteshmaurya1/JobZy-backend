@@ -38,6 +38,9 @@ app.use("/api/v1", interviewRouter);
 // Start email queue worker
 startWorker();
 
+// Start Cron for email reminders
+require("./src/cron/emailReminders");
+
 // Global error handler.
 app.use(globalErrorHandler);
 

@@ -1,6 +1,3 @@
-// ❌ Remove this line from top
-// const { sendEmail } = require("../services/emailService");
-
 const {
   welcomeTemplate,
   loginAlertTemplate,

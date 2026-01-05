@@ -196,7 +196,7 @@ function welcomeTemplate(name) {
 function jobCreatedTemplate(name, company, position, appliedDate) {
   return `
   <html>
-    <body style="font-family: Arial, sans-serif; background:#f4f4f5; padding:28px;">
+    <body style="font-family: Arial, sans-serif; background:#f4f4f5; padding:5px;">
       <table width="100%" cellspacing="0" cellpadding="0"
         style="max-width:560px; margin:auto; background:#ffffff; border-radius:12px; border:2px dashed #cfd1d4;">
         
@@ -266,7 +266,7 @@ function jobUpdatedTemplate(name, company, position, oldStatus, newStatus) {
 
   return `
   <html>
-    <body style="font-family: Arial, sans-serif; background:#f4f4f5; padding:28px;">
+    <body style="font-family: Arial, sans-serif; background:#f4f4f5; padding:5px;">
       <table width="100%" cellspacing="0" cellpadding="0"
         style="max-width:560px; margin:auto; background:#ffffff; border-radius:12px; border:2px dashed #cfd1d4;">
         
@@ -413,105 +413,192 @@ function interviewScheduledTemplate(
 }
 
 // ✅ NEW: Interview Reminder (1 day before)
-function interviewReminderTemplate(
-  name,
-  company,
-  position,
-  round,
-  date,
-  time,
-  meetingLink
-) {
+function interviewReminderTemplate(name, company, position, round, date, time) {
   return `
   <html>
-    <body style="font-family: Arial, sans-serif; background:#f4f4f5; padding:28px;">
+    <body style="font-family: Arial, sans-serif; background:#f4f4f5; padding:5px;">
       <table width="100%" cellspacing="0" cellpadding="0"
-        style="max-width:560px; margin:auto; background:#ffffff; border-radius:12px; border:2px solid #f59e0b;">
+        style="max-width:560px; margin:auto; background:#ffffff; border-radius:12px; border:2px dashed #cfd1d4;">
         
+        <!-- Header -->
         <tr>
           <td style="padding:18px 24px; font-size:18px; font-weight:600; color:#111; border-bottom:1px solid #f0f0f0; background:#fef3c7;">
-            ⏰ Interview Tomorrow!
+            ⏰ Interview Reminder
           </td>
         </tr>
 
+        <!-- Greeting -->
         <tr>
-          <td style="padding:24px; color:#333; font-size:15px;">
-            Hi ${name},
+          <td style="padding:24px 24px 8px; color:#333; font-size:15px; line-height:1.6;">
+            Hi <strong>${name}</strong>,
             <br><br>
-            This is a friendly reminder about your <strong>interview tomorrow</strong>!
+            Hope you're doing well! This is a friendly reminder that your interview with <strong>${company}</strong> is scheduled for <span style="background:#fef3c7; padding:2px 6px; border-radius:4px; font-weight:600;">tomorrow</span>.
+            <br><br>
+            We wanted to make sure you have all the details handy so you can prepare accordingly.
           </td>
         </tr>
 
+        <!-- Interview Details -->
         <tr>
-          <td style="padding:0 24px 20px;">
-            <table width="100%" style="font-size:14px; color:#444;">
+          <td style="padding:14px 24px 20px;">
+            <table width="100%" style="font-size:14px; color:#444; border-collapse:collapse; background:#fafafa; border-radius:8px; overflow:hidden;">
               <tr>
-                <td style="padding:6px 0; width:120px; opacity:0.7;">Company</td>
-                <td style="padding:6px 0;"><strong>${company}</strong></td>
+                <td colspan="2" style="padding:12px; background:#f0f4ff; font-weight:600; color:#1e40af; font-size:13px; text-transform:uppercase; letter-spacing:0.5px;">
+                  📋 Interview Details
+                </td>
               </tr>
-              <tr>
-                <td style="padding:6px 0; opacity:0.7;">Position</td>
-                <td style="padding:6px 0;">${position}</td>
+              <tr style="border-bottom:1px solid #efefef;">
+                <td style="padding:12px; width:120px; opacity:0.7; font-weight:500;">Company</td>
+                <td style="padding:12px;"><strong style="color:#111;">${company}</strong></td>
               </tr>
-              <tr>
-                <td style="padding:6px 0; opacity:0.7;">Round</td>
-                <td style="padding:6px 0;">${round}</td>
+              <tr style="border-bottom:1px solid #efefef;">
+                <td style="padding:12px; opacity:0.7; font-weight:500;">Position</td>
+                <td style="padding:12px; color:#374151;">${position}</td>
               </tr>
-              <tr>
-                <td style="padding:6px 0; opacity:0.7;">Date</td>
-                <td style="padding:6px 0;"><strong style="color:#dc2626;">${new Date(
-                  date
-                ).toLocaleDateString("en-IN", {
-                  dateStyle: "full",
-                })}</strong></td>
+              <tr style="border-bottom:1px solid #efefef;">
+                <td style="padding:12px; opacity:0.7; font-weight:500;">Round</td>
+                <td style="padding:12px;">
+                  <span style="background:#e0e7ff; color:#3730a3; padding:4px 10px; border-radius:6px; font-weight:600; font-size:13px;">${round}</span>
+                </td>
+              </tr>
+              <tr style="border-bottom:1px solid #efefef;">
+                <td style="padding:12px; opacity:0.7; font-weight:500;">Date</td>
+                <td style="padding:12px;">
+                  <strong style="color:#dc2626;">${new Date(
+                    date
+                  ).toLocaleDateString("en-IN", { dateStyle: "full" })}</strong>
+                </td>
               </tr>
               ${
                 time
-                  ? `<tr>
-                <td style="padding:6px 0; opacity:0.7;">Time</td>
-                <td style="padding:6px 0;"><strong>${time}</strong></td>
-              </tr>`
-                  : ""
-              }
-              ${
-                meetingLink
-                  ? `<tr>
-                <td style="padding:6px 0; opacity:0.7;">Meeting Link</td>
-                <td style="padding:6px 0;"><a href="${meetingLink}" style="color:#2563eb; font-weight:600;">Join Meeting →</a></td>
-              </tr>`
+                  ? `
+              <tr>
+                <td style="padding:12px; opacity:0.7; font-weight:500;">Time</td>
+                <td style="padding:12px;">
+                  <strong style="color:#0f172a; font-size:15px;">${time}</strong>
+                </td>
+              </tr>
+              `
                   : ""
               }
             </table>
           </td>
         </tr>
 
+        <!-- Preparation Tips -->
         <tr>
-          <td style="padding:10px 24px 20px;">
-            <div style="background:#dcfce7; border:1px solid #86efac; border-radius:8px; padding:16px;">
-              <div style="font-size:14px; font-weight:600; margin-bottom:8px; color:#166534;">
-                ✅ Quick Checklist
+          <td style="padding:0 24px 20px;">
+            <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:16px;">
+              <div style="font-size:14px; font-weight:600; margin-bottom:10px; color:#166534;">
+                ✅ Quick Preparation Checklist
               </div>
-              <ul style="margin:8px 0; padding-left:20px; font-size:13px; color:#15803d; line-height:1.7;">
-                <li>Test your internet & audio/video setup</li>
-                <li>Review your resume and job description</li>
-                <li>Prepare questions for the interviewer</li>
-                <li>Arrive 5 minutes early (virtual/in-person)</li>
+              <ul style="margin:8px 0 0 0; padding-left:20px; font-size:13px; color:#15803d; line-height:1.8;">
+                <li>Test your internet connection and audio/video setup beforehand</li>
+                <li>Review your resume and the job description thoroughly</li>
+                <li>Research ${company} and prepare relevant questions</li>
+                <li>Join the meeting 5 minutes early to avoid technical issues</li>
+                <li>Keep a notepad handy for taking notes</li>
               </ul>
             </div>
           </td>
         </tr>
 
+        <!-- Good Luck Message -->
         <tr>
-          <td style="background:#fbfbfb; padding:14px 24px; font-size:11px; color:#999; border-radius:0 0 12px 12px; text-align:center; border-top:1px solid #efefef;">
-            You got this! 💪 © ${new Date().getFullYear()} JobZy.
+          <td style="padding:0 24px 24px; font-size:14px; color:#374151; line-height:1.6;">
+            We believe in you! Give it your best shot and remember — you've already impressed them enough to get this interview. 💪
+            <br><br>
+            <strong style="color:#111;">Best of luck!</strong>
           </td>
         </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="background:#fbfbfb; padding:16px 24px; font-size:11px; color:#999; border-radius:0 0 12px 12px; text-align:center; border-top:1px solid #efefef; line-height:1.5;">
+            This is an automated reminder from JobZy to help you stay organized.<br>
+            Keep tracking your applications and never miss an opportunity!
+            <br><br>
+            © ${new Date().getFullYear()} JobZy. All rights reserved.
+          </td>
+        </tr>
+
       </table>
     </body>
   </html>`;
 }
 
 // ✅ NEW: Follow-up Reminder (after interview)
+// function followUpReminderTemplate(
+//   name,
+//   company,
+//   position,
+//   round,
+//   interviewDate
+// ) {
+//   return `
+//   <html>
+//     <body style="font-family: Arial, sans-serif; background:#f4f4f5; padding:28px;">
+//       <table width="100%" cellspacing="0" cellpadding="0"
+//         style="max-width:560px; margin:auto; background:#ffffff; border-radius:12px; border:2px dashed #cfd1d4;">
+
+//         <tr>
+//           <td style="padding:18px 24px; font-size:18px; font-weight:600; color:#111; border-bottom:1px solid #f0f0f0;">
+//             📩 Follow-up Reminder
+//           </td>
+//         </tr>
+
+//         <tr>
+//           <td style="padding:24px; color:#333; font-size:15px;">
+//             Hi ${name},
+//             <br><br>
+//             It's been a few days since your interview at <strong>${company}</strong>. Consider sending a follow-up email!
+//           </td>
+//         </tr>
+
+//         <tr>
+//           <td style="padding:0 24px 20px;">
+//             <table width="100%" style="font-size:14px; color:#444;">
+//               <tr>
+//                 <td style="padding:6px 0; opacity:0.7;">Company</td>
+//                 <td style="padding:6px 0;"><strong>${company}</strong></td>
+//               </tr>
+//               <tr>
+//                 <td style="padding:6px 0; opacity:0.7;">Position</td>
+//                 <td style="padding:6px 0;">${position}</td>
+//               </tr>
+//               <tr>
+//                 <td style="padding:6px 0; opacity:0.7;">Interview</td>
+//                 <td style="padding:6px 0;">${round} on ${new Date(
+//     interviewDate
+//   ).toLocaleDateString("en-IN")}</td>
+//               </tr>
+//             </table>
+//           </td>
+//         </tr>
+
+//         <tr>
+//           <td style="padding:10px 24px 20px;">
+//             <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:16px;">
+//               <div style="font-size:14px; font-weight:600; margin-bottom:8px; color:#075985;">
+//                 💌 Sample Follow-up
+//               </div>
+//               <div style="font-size:13px; color:#0c4a6e; line-height:1.6; font-style:italic;">
+//                 "Thank you for the opportunity to interview for the ${position} role. I remain very interested in this position and would appreciate any updates on the hiring process."
+//               </div>
+//             </div>
+//           </td>
+//         </tr>
+
+//         <tr>
+//           <td style="background:#fbfbfb; padding:14px 24px; font-size:11px; color:#999; border-radius:0 0 12px 12px; text-align:center; border-top:1px solid #efefef;">
+//             © ${new Date().getFullYear()} JobZy.
+//           </td>
+//         </tr>
+//       </table>
+//     </body>
+//   </html>`;
+// }
+
 function followUpReminderTemplate(
   name,
   company,
@@ -521,63 +608,125 @@ function followUpReminderTemplate(
 ) {
   return `
   <html>
-    <body style="font-family: Arial, sans-serif; background:#f4f4f5; padding:28px;">
+    <body style="font-family: Arial, sans-serif; background:#f4f4f5; padding:5px;">
       <table width="100%" cellspacing="0" cellpadding="0"
         style="max-width:560px; margin:auto; background:#ffffff; border-radius:12px; border:2px dashed #cfd1d4;">
         
+        <!-- Header -->
         <tr>
-          <td style="padding:18px 24px; font-size:18px; font-weight:600; color:#111; border-bottom:1px solid #f0f0f0;">
+          <td style="padding:18px 24px; font-size:18px; font-weight:600; color:#111; border-bottom:1px solid #f0f0f0; background:#e0f2fe;">
             📩 Follow-up Reminder
           </td>
         </tr>
 
+        <!-- Greeting -->
         <tr>
-          <td style="padding:24px; color:#333; font-size:15px;">
-            Hi ${name},
+          <td style="padding:24px 24px 8px; color:#333; font-size:15px; line-height:1.6;">
+            Hi <strong>${name}</strong>,
             <br><br>
-            It's been a few days since your interview at <strong>${company}</strong>. Consider sending a follow-up email!
+            Hope you're doing well! It's been a few days since your interview with <strong>${company}</strong>, and we wanted to remind you that following up is a great way to show continued interest.
+            <br><br>
+            A polite follow-up email can help keep you top-of-mind with the hiring team and demonstrate your enthusiasm for the role.
           </td>
         </tr>
 
+        <!-- Interview Details -->
         <tr>
-          <td style="padding:0 24px 20px;">
-            <table width="100%" style="font-size:14px; color:#444;">
+          <td style="padding:14px 24px 20px;">
+            <table width="100%" style="font-size:14px; color:#444; border-collapse:collapse; background:#fafafa; border-radius:8px; overflow:hidden;">
               <tr>
-                <td style="padding:6px 0; opacity:0.7;">Company</td>
-                <td style="padding:6px 0;"><strong>${company}</strong></td>
+                <td colspan="2" style="padding:12px; background:#fef3c7; font-weight:600; color:#92400e; font-size:13px; text-transform:uppercase; letter-spacing:0.5px;">
+                  📋 Interview Summary
+                </td>
+              </tr>
+              <tr style="border-bottom:1px solid #efefef;">
+                <td style="padding:12px; width:120px; opacity:0.7; font-weight:500;">Company</td>
+                <td style="padding:12px;"><strong style="color:#111;">${company}</strong></td>
+              </tr>
+              <tr style="border-bottom:1px solid #efefef;">
+                <td style="padding:12px; opacity:0.7; font-weight:500;">Position</td>
+                <td style="padding:12px; color:#374151;">${position}</td>
+              </tr>
+              <tr style="border-bottom:1px solid #efefef;">
+                <td style="padding:12px; opacity:0.7; font-weight:500;">Round</td>
+                <td style="padding:12px;">
+                  <span style="background:#fef3c7; color:#92400e; padding:4px 10px; border-radius:6px; font-weight:600; font-size:13px;">${round}</span>
+                </td>
               </tr>
               <tr>
-                <td style="padding:6px 0; opacity:0.7;">Position</td>
-                <td style="padding:6px 0;">${position}</td>
-              </tr>
-              <tr>
-                <td style="padding:6px 0; opacity:0.7;">Interview</td>
-                <td style="padding:6px 0;">${round} on ${new Date(
-    interviewDate
-  ).toLocaleDateString("en-IN")}</td>
+                <td style="padding:12px; opacity:0.7; font-weight:500;">Interview Date</td>
+                <td style="padding:12px;">
+                  <strong style="color:#0f172a;">${new Date(
+                    interviewDate
+                  ).toLocaleDateString("en-IN", { dateStyle: "full" })}</strong>
+                </td>
               </tr>
             </table>
           </td>
         </tr>
 
+        <!-- Sample Email Template -->
         <tr>
-          <td style="padding:10px 24px 20px;">
+          <td style="padding:0 24px 20px;">
             <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:16px;">
-              <div style="font-size:14px; font-weight:600; margin-bottom:8px; color:#075985;">
-                💌 Sample Follow-up
+              <div style="font-size:14px; font-weight:600; margin-bottom:10px; color:#075985;">
+                💌 Sample Follow-up Email
               </div>
-              <div style="font-size:13px; color:#0c4a6e; line-height:1.6; font-style:italic;">
-                "Thank you for the opportunity to interview for the ${position} role. I remain very interested in this position and would appreciate any updates on the hiring process."
+              <div style="font-size:13px; color:#0c4a6e; line-height:1.7; font-style:italic; background:#ffffff; padding:12px; border-radius:6px; border-left:3px solid #0ea5e9;">
+                Subject: Following up on ${position} Interview
+                <br><br>
+                Dear Hiring Team,
+                <br><br>
+                Thank you for the opportunity to interview for the <strong>${position}</strong> position at <strong>${company}</strong>. I truly enjoyed our conversation and learning more about the team and role.
+                <br><br>
+                I remain very interested in this opportunity and would appreciate any updates on the hiring process. Please feel free to reach out if you need any additional information from my end.
+                <br><br>
+                Looking forward to hearing from you.
+                <br><br>
+                Best regards,<br>
+                ${name}
               </div>
             </div>
           </td>
         </tr>
 
+        <!-- Follow-up Tips -->
         <tr>
-          <td style="background:#fbfbfb; padding:14px 24px; font-size:11px; color:#999; border-radius:0 0 12px 12px; text-align:center; border-top:1px solid #efefef;">
-            © ${new Date().getFullYear()} JobZy.
+          <td style="padding:0 24px 20px;">
+            <div style="background:#fef3c7; border:1px solid #fde047; border-radius:8px; padding:16px;">
+              <div style="font-size:14px; font-weight:600; margin-bottom:10px; color:#92400e;">
+                💡 Follow-up Best Practices
+              </div>
+              <ul style="margin:8px 0 0 0; padding-left:20px; font-size:13px; color:#854d0e; line-height:1.8;">
+                <li>Send the email <strong>3-5 business days</strong> after your interview</li>
+                <li>Keep it <strong>brief and professional</strong> (under 150 words)</li>
+                <li>Express genuine interest without sounding desperate</li>
+                <li>Mention something specific from your conversation</li>
+                <li>If no response after 1 week, you can send one more polite follow-up</li>
+              </ul>
+            </div>
           </td>
         </tr>
+
+        <!-- Encouragement -->
+        <tr>
+          <td style="padding:0 24px 24px; font-size:14px; color:#374151; line-height:1.6;">
+            Remember, following up shows professionalism and genuine interest. Even if you don't get this role, staying on good terms can lead to future opportunities!
+            <br><br>
+            <strong style="color:#111;">Wishing you the best! 🍀</strong>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="background:#fbfbfb; padding:16px 24px; font-size:11px; color:#999; border-radius:0 0 12px 12px; text-align:center; border-top:1px solid #efefef; line-height:1.5;">
+            This is an automated reminder from JobZy to help you follow up at the right time.<br>
+            Stay proactive and keep building connections!
+            <br><br>
+            © ${new Date().getFullYear()} JobZy. All rights reserved.
+          </td>
+        </tr>
+
       </table>
     </body>
   </html>`;

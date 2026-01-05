@@ -76,6 +76,10 @@ const Job = sequelize.define(
       type: DataTypes.STRING, // "Backend_Resume_v2.pdf"
       allowNull: true,
     },
+    followUpDate: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+    },
     createdAt: {
       type: DataTypes.DATE,
       defaultValue: Sequelize.NOW,
