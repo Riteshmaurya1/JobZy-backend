@@ -17,7 +17,7 @@ const User = sequelize.define(
     email: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true, 
+      unique: true,
     },
     phoneNumber: {
       type: DataTypes.BIGINT,
@@ -29,19 +29,46 @@ const User = sequelize.define(
     },
     refreshToken: {
       type: DataTypes.TEXT,
-      defaultValue: null, 
+      defaultValue: null,
     },
     tier: {
       type: DataTypes.ENUM("free", "premium", "pro"),
       defaultValue: "free",
     },
+
     monthlyJobsUsed: {
       type: DataTypes.INTEGER,
       defaultValue: 0,
     },
+
+    totalInterviews: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+
+    totalNotes: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+
+    monthlyAIResumes: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+
+    monthlyATSChecks: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+
+    monthlyEmailsSent: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+    
     lastReset: {
       type: DataTypes.DATE,
-      defaultValue: Sequelize.NOW, 
+      defaultValue: Sequelize.NOW,
     },
     createdAt: {
       type: DataTypes.DATE,

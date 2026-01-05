@@ -9,34 +9,70 @@ const {
   deleteJob,
   getJobStats,
   getQuotaInfo,
+  exportJobsPDF,
+  exportJobsCSV,
+  advancedSearch,
 } = require("../controllers/jobController");
 
+// ✅ NEW MIDDLEWARE
 const isAuth = require("../middleware/verifyJwt");
-const checkJobQuota = require("../middleware/checkJobQuota");
-const getJobQuota = require("../middleware/getJobQuota");
+const checkFeatureAccess = require("../middleware/checkFeatureAccess");
+const checkResourceQuota = require("../middleware/checkResourceQuota");
 
 // All routes require authentication
 jobRouter.use(isAuth);
 
-// GET: Fetch quota info
-jobRouter.get("/jobs/quota", getJobQuota, getQuotaInfo);
+// ************* QUOTA & STATS ROUTES ************
+jobRouter.get(
+  "/jobs/quota",
+  checkResourceQuota("jobs", false), // false = don't block, just attach quota
+  getQuotaInfo
+);
+// GET: Job statistics (Basic for all, Advanced for Premium+)
+jobRouter.get(
+  "/jobs/stats",
+  checkResourceQuota("jobs", false), // Attach quota info
+  getJobStats
+);
 
-// GET: Job statistics
-jobRouter.get("/jobs/stats", getJobQuota, getJobStats);
+// ************ EXPORT ROUTES (Premium+ only) ******************
 
-// GET: All jobs (with optional quota info)
-jobRouter.get("/jobs", getJobQuota, getAllJobs);
+// GET: Export jobs as PDF (Premium+ only)
+jobRouter.get(
+  "/jobs/export/pdf",
+  checkFeatureAccess("PDF_EXPORT"), // Check if user has PDF export
+  exportJobsPDF
+);
 
-// POST: Create job (check quota first)
-jobRouter.post("/jobs/create", checkJobQuota, createJob);
+// GET: Export jobs as CSV (Premium+ only)
+jobRouter.get(
+  "/jobs/export/csv",
+  checkFeatureAccess("CSV_EXPORT"), // Check if user has CSV export
+  exportJobsCSV
+);
 
-// GET: Single job
+// ************** SEARCH ROUTES ****************
+// POST: Advanced search with filters (Premium+ only)
+jobRouter.post(
+  "/jobs/search/advanced",
+  checkFeatureAccess("JOB_ADVANCED_FILTERS"), // Premium+ only
+  advancedSearch
+);
+jobRouter.get(
+  "/jobs",
+  checkResourceQuota("jobs", false), // Don't block, just attach quota
+  getAllJobs
+);
+
+// ****************JOB CRUD ROUTES ****************
+jobRouter.post(
+  "/jobs/create",
+  checkResourceQuota("jobs", true), // true = block if quota exceeded
+  createJob
+);
+
 jobRouter.get("/jobs/:jobId", getJobById);
-
-// PUT: Update job
 jobRouter.put("/jobs/:jobId", updateJob);
-
-// DELETE: Delete job
 jobRouter.delete("/jobs/:jobId", deleteJob);
 
 module.exports = jobRouter;
