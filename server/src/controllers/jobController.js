@@ -20,6 +20,9 @@ const createJob = async (req, res, next) => {
       platform,
       notes,
       resumeVersion,
+      followUpDate,
+      appliedDate,
+      status,
     } = req.body;
 
     if (!company || !position) {
@@ -34,13 +37,15 @@ const createJob = async (req, res, next) => {
       position,
       jobLink,
       location,
-      workMode: workMode || "onsite",
-      jobType: jobType || "full-time",
+      workMode,
+      jobType,
       salary,
       platform,
       notes,
       resumeVersion,
-      status: "applied",
+      followUpDate,
+      appliedDate,
+      status,
     });
 
     const user = await User.findByPk(userId);
@@ -73,8 +78,7 @@ const createJob = async (req, res, next) => {
         position: job.position,
         status: job.status,
         appliedDate: job.appliedDate,
-      },
-      quota: req.userQuota,
+      }
     });
   } catch (error) {
     next(error);
@@ -127,7 +131,6 @@ const getAllJobs = async (req, res, next) => {
       count: jobs.length,
       totalCount,
       jobs,
-      quota: req.userQuota, // Include quota if middleware ran
     });
   } catch (error) {
     next(error);
@@ -194,6 +197,7 @@ const updateJob = async (req, res, next) => {
       "platform",
       "notes",
       "resumeVersion",
+      "followUpDate",
     ];
 
     const filteredUpdates = {};
@@ -304,7 +308,6 @@ const getJobStats = async (req, res, next) => {
         upcomingInterviews,
         successRate: total > 0 ? ((offered / total) * 100).toFixed(1) : 0,
       },
-      quota: req.userQuota,
     });
   } catch (error) {
     next(error);
