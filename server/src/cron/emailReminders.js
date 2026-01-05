@@ -12,7 +12,7 @@ const { queueEmail } = require("../jobs/customEmailWorker");
 // ==========================================
 // 🎯 CRON 1: INTERVIEW REMINDER
 // ==========================================
-const INTERVIEW_CRON_SCHEDULE = "*/1 * * * *";
+const INTERVIEW_CRON_SCHEDULE = "0 5 * * *";
 
 cron.schedule(INTERVIEW_CRON_SCHEDULE, async () => {
   console.log("\n🔔 [Interview Cron] Starting interview reminder check...");
@@ -114,7 +114,7 @@ console.log(`✅ Interview reminder cron scheduled: ${INTERVIEW_CRON_SCHEDULE}`)
 // ==========================================
 // 📧 CRON 2: FOLLOW-UP REMINDER
 // ==========================================
-const FOLLOWUP_CRON_SCHEDULE = "*/1 * * * *";
+const FOLLOWUP_CRON_SCHEDULE = "0 9 * * *";
 
 cron.schedule(FOLLOWUP_CRON_SCHEDULE, async () => {
   console.log("\n📧 [Follow-up Cron] Starting follow-up reminder check...");
