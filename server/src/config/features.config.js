@@ -54,6 +54,12 @@ module.exports = {
     pro: true, // ✅ Unlimited
   },
 
+  ATS_CHECKER: {
+    free: false, // ❌ Blocked
+    premium: true, // ✅ Limited checks
+    pro: true, // ✅ Unlimited
+  },
+
   ATS_KEYWORD_SUGGESTIONS: {
     free: false, // ❌ Blocked
     premium: false, // ❌ Blocked
@@ -79,7 +85,7 @@ module.exports = {
     premium: true, // ✅ Allowed
     pro: true, // ✅ Allowed
   },
-  
+
   CSV_EXPORT: {
     free: false, // ❌ Blocked
     premium: true, // ✅ Allowed
@@ -93,4 +99,3 @@ module.exports = {
     pro: true, // ✅ Priority 24/7
   },
 };
-

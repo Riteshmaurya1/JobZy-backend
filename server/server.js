@@ -12,6 +12,7 @@ const authRouter = require("./src/routes/authRouter");
 const profileRouter = require("./src/routes/profileRouter");
 const interviewRouter = require("./src/routes/interviewRouter");
 const jobRouter = require("./src/routes/jobRouter");
+const atsRouter = require("./src/routes/atsRouter");
 
 // Use In production.
 // const corsOptions = {
@@ -34,6 +35,8 @@ app.use("/api/v1", authRouter);
 app.use("/api/v1", profileRouter);
 app.use("/api/v1", jobRouter);
 app.use("/api/v1", interviewRouter);
+app.use("/api/v1", interviewRouter);
+app.use("/api/v1", atsRouter);
 
 // Start email queue worker
 startWorker();
