@@ -31,6 +31,14 @@ const User = sequelize.define(
       type: DataTypes.TEXT,
       defaultValue: null,
     },
+    primaryRole: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    currentGoal: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     tier: {
       type: DataTypes.ENUM("free", "premium", "pro"),
       defaultValue: "free",
@@ -65,7 +73,7 @@ const User = sequelize.define(
       type: DataTypes.INTEGER,
       defaultValue: 0,
     },
-    
+
     lastReset: {
       type: DataTypes.DATE,
       defaultValue: Sequelize.NOW,

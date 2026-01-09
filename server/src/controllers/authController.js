@@ -8,10 +8,10 @@ const { queueEmail } = require("../jobs/customEmailWorker");
 const SignUp = async (req, res, next) => {
   try {
     // Step1: get data from body
-    const { name, email, phoneNumber, password } = req.body;
+    const { name, email, phoneNumber, password, primaryRole, currentGoal } = req.body;
 
     // Step2: validate inputs
-    if (!name || !email || !phoneNumber || !password) {
+    if (!name || !email || !phoneNumber || !password || !primaryRole || !currentGoal) {
       const error = new Error("Invalid credentials!.");
       error.statusCode = 400;
       throw error;
@@ -35,6 +35,8 @@ const SignUp = async (req, res, next) => {
       email,
       phoneNumber,
       password: hashedPassword,
+      primaryRole,
+      currentGoal,
     });
 
     // Step6: Generate Token and making payload
