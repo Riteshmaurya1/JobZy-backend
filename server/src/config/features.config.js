@@ -10,9 +10,9 @@ module.exports = {
     pro: true,
   },
   JOB_EXPORT: {
-    free: false, // ❌ Blocked
-    premium: true, // ✅ Allowed
-    pro: true, // ✅ Allowed
+    free: false,
+    premium: true,
+    pro: true,
   },
   JOB_ADVANCED_FILTERS: {
     free: false, // ❌ Blocked
