@@ -616,6 +616,40 @@ const advancedSearch = async (req, res, next) => {
   }
 };
 
+const basicSearch = async (req, res, next) => {
+  try {
+    const userId = req.payload.id;
+    const { query } = req.body;
+    if (!query) {
+      return res.status(400).json({
+        success: false,
+        message: "Search query is required",
+      });
+    }
+    const jobs = await Job.findAll({
+      where: {
+        userId,
+        [Op.or]: [
+          { company: { [Op.iLike]: `%${query}%` } },
+          { position: { [Op.iLike]: `%${query}%` } },
+          { location: { [Op.iLike]: `%${query}%` } },
+        ],
+      },
+      order: [["appliedDate", "DESC"]],
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Basic search completed",
+      count: jobs.length,
+      jobs,
+      query,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createJob,
   getAllJobs,
@@ -627,4 +661,5 @@ module.exports = {
   exportJobsPDF,
   exportJobsCSV,
   advancedSearch,
+  basicSearch,
 };

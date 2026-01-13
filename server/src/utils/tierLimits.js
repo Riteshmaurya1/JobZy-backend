@@ -1,5 +1,5 @@
 module.exports = {
-  free: 10,
-  premium: 50,
-  pro: Infinity,
+  free: 20,
+  premium: 150,
+  pro: 500,
 };

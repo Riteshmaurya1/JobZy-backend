@@ -12,6 +12,7 @@ const {
   exportJobsPDF,
   exportJobsCSV,
   advancedSearch,
+  basicSearch
 } = require("../controllers/jobController");
 
 // ✅ NEW MIDDLEWARE
@@ -69,7 +70,10 @@ jobRouter.post(
   checkResourceQuota("jobs", true), // true = block if quota exceeded
   createJob
 );
-
+jobRouter.post(
+  "/jobs/search",
+  basicSearch
+);
 jobRouter.get("/jobs/:jobId", getJobById);
 jobRouter.put("/jobs/:jobId", updateJob);
 jobRouter.delete("/jobs/:jobId", deleteJob);
