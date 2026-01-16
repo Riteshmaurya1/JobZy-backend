@@ -13,7 +13,7 @@ const isAuth = require("../middleware/verifyJwt");
 // All routes require authentication
 profileRouter.use(isAuth);
 
-// Profile CRUD (REST-ful)
+// Profile CRUD (REST-ful)rs
 profileRouter.get("/user/profile", getProfile);
 profileRouter.put("/user/profile", updateProfile);
 profileRouter.delete("/user/profile", deleteAccount);

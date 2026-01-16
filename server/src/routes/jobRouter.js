@@ -37,7 +37,6 @@ jobRouter.get(
 );
 
 // ************ EXPORT ROUTES (Premium+ only) ******************
-// GET: Export jobs as PDF (Premium+ only)
 jobRouter.get(
   "/jobs/export/pdf",
   checkFeatureAccess("PDF_EXPORT"),

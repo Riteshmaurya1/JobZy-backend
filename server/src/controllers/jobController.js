@@ -5,6 +5,10 @@ const {
   jobCreatedTemplate,
   jobUpdatedTemplate,
 } = require("../utils/emailTemplates");
+const PDFDocument = require("pdfkit");
+const fs = require("fs");
+const path = require("path");
+const { generatePDFTemplate, generateHTMLResponse } = require("../utils/pdfTemplate");
 
 // POST: Create new job application
 const createJob = async (req, res, next) => {
@@ -446,20 +450,71 @@ const exportJobsPDF = async (req, res, next) => {
         },
       ],
       order: [["appliedDate", "DESC"]],
+      raw: false,
     });
 
-    // ✅ TODO: Integrate PDF generation library
-    // Example: puppeteer, pdfkit, jsPDF
+    if (!jobs || jobs.length === 0) {
+      const htmlResponse = generateHTMLResponse(null, null, null, true);
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      return res.status(200).send(htmlResponse);
+    }
 
-    // Mock response for now
-    return res.status(200).json({
-      success: true,
-      message: "PDF export feature",
-      exportUrl: `/exports/jobs-${userId}.pdf`,
-      jobsCount: jobs.length,
-      generatedAt: new Date(),
+    // Create exports directory
+    const exportsDir = path.join(__dirname, "../exports");
+    if (!fs.existsSync(exportsDir)) {
+      fs.mkdirSync(exportsDir, { recursive: true });
+    }
+
+    // Create PDF
+    const doc = new PDFDocument({
+      size: "A4",
+      margin: 40,
+      bufferPages: true,
+    });
+
+    const fileName = `jobs-${userId}-${Date.now()}.pdf`;
+    const filePath = path.join(exportsDir, fileName);
+    const stream = fs.createWriteStream(filePath);
+
+    doc.pipe(stream);
+
+    // Generate PDF content using template
+    generatePDFTemplate(doc, jobs);
+
+    doc.end();
+
+    // Handle stream events
+    stream.on("finish", () => {
+      // Calculate stats
+      const stats = {
+        total: jobs.length,
+        applied: jobs.filter((j) => j.status === "applied").length,
+        screening: jobs.filter((j) => j.status === "screening").length,
+        "interview-scheduled": jobs.filter(
+          (j) => j.status === "interview-scheduled"
+        ).length,
+        interviewed: jobs.filter((j) => j.status === "interviewed").length,
+        offered: jobs.filter((j) => j.status === "offered").length,
+        rejected: jobs.filter((j) => j.status === "rejected").length,
+        accepted: jobs.filter((j) => j.status === "accepted").length,
+      };
+
+      const htmlResponse = generateHTMLResponse(jobs, stats, fileName);
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.status(200).send(htmlResponse);
+    });
+
+    stream.on("error", (err) => {
+      console.error("Stream error:", err);
+      fs.unlink(filePath, () => {});
+      res.status(500).json({
+        success: false,
+        message: "PDF generation failed",
+        error: err.message,
+      });
     });
   } catch (error) {
+    console.error("Export error:", error);
     next(error);
   }
 };

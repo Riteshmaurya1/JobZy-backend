@@ -8,10 +8,18 @@ const { queueEmail } = require("../jobs/customEmailWorker");
 const SignUp = async (req, res, next) => {
   try {
     // Step1: get data from body
-    const { name, email, phoneNumber, password, primaryRole, currentGoal } = req.body;
+    const { name, email, phoneNumber, password, primaryRole, currentGoal } =
+      req.body;
 
     // Step2: validate inputs
-    if (!name || !email || !phoneNumber || !password || !primaryRole || !currentGoal) {
+    if (
+      !name ||
+      !email ||
+      !phoneNumber ||
+      !password ||
+      !primaryRole ||
+      !currentGoal
+    ) {
       const error = new Error("Invalid credentials!.");
       error.statusCode = 400;
       throw error;
@@ -184,8 +192,17 @@ const refreshAccessToken = async (req, res, next) => {
   }
 };
 
+const logout = async (req, res) => {
+  const userId = req.payload.id;
+  const user = await User.findByPk(userId);
+  user.refreshToken = null;
+  await user.save();
+  return res.status(200).json({ message: "Logged out successfully" });
+};
+
 module.exports = {
   SignUp,
   SignIn,
+  logout,
   refreshAccessToken,
 };
