@@ -21,6 +21,7 @@ const jobRouter = require("./src/routes/jobRouter");
 const atsRouter = require("./src/routes/atsRouter");
 const dashboardRouter = require("./src/routes/dashboardRouter");
 const loggerMiddleware = require("./src/middleware/loggermiddleware");
+const paymentRouter = require("./src/routes/paymentRouter");
 
 // CORS (prod)
 const corsOptions = {
@@ -50,6 +51,7 @@ app.use("/api/v1", jobRouter);
 app.use("/api/v1", interviewRouter);
 app.use("/api/v1", atsRouter);
 app.use("/api/v1", dashboardRouter);
+app.use("/api/v1", paymentRouter);
 
 // Worker & cron
 startWorker();
@@ -68,12 +70,14 @@ app.use(globalErrorHandler);
 
 (async () => {
   try {
-    await db.authenticate({alter: true});
+    await db.sync({ alter: true });
     app.listen(PORT, () => {
-      logger.info(`🌎 Server is connected on ${PORT}.`);
+      // logger.info(`🌎 Server is connected on ${PORT}.`);
+      console.log(`🌎 Server is connected on ${PORT}.`);
     });
   } catch (error) {
-    logger.error(error, "Server start failed");
+    // logger.error(error, "Server start failed");
+    console.log(error, "Server start failed");
     process.exit(1);
   }
 })();
