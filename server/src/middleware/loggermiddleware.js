@@ -1,4 +1,4 @@
-const logger = require("../utils/logger");
+const logger = require("../logger/logger");
 
 const loggerMiddleware = (req, res, next) => {
   logger.info(

@@ -6,7 +6,7 @@ const app = express();
 const cors = require("cors");
 
 const globalErrorHandler = require("./src/middleware/globalErrorHandler");
-const logger = require("./src/utils/logger");
+const logger = require("./src/logger/logger");
 
 // sirf import – yahan db ka config run ho jayega
 const db = require("./src/config/db-connection");
