@@ -21,6 +21,7 @@ const {
 
 const isAuth = require("../middleware/verifyJwt");
 const validationErrorHandler = require("../middleware/validationErrorHandler");
+const verifyRazorpayWebhook = require("../middleware/verifyRazorpayWebhook");
 
 // Public routes
 paymentRouter.post("/payments/webhook", handleWebhook);
@@ -55,6 +56,8 @@ paymentRouter.get(
   validationErrorHandler,
   getPaymentHistory,
 );
+
+paymentRouter.post("/payments/webhook", verifyRazorpayWebhook, handleWebhook);
 
 paymentRouter.get("/payments/subscription", getActiveSubscription);
 

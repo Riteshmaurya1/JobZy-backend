@@ -40,7 +40,7 @@ const Payment = sequelize.define(
         "successful",
         "pending",
         "authorized",
-        "captured",
+        "created",
         "failed",
         "refunded"
       ),
