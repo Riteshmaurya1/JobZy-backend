@@ -23,9 +23,6 @@ const isAuth = require("../middleware/verifyJwt");
 const validationErrorHandler = require("../middleware/validationErrorHandler");
 const verifyRazorpayWebhook = require("../middleware/verifyRazorpayWebhook");
 
-// Public routes
-paymentRouter.post("/payments/webhook", handleWebhook);
-
 // Protected routes
 paymentRouter.use(isAuth);
 
