@@ -6,7 +6,6 @@ const app = express();
 const cors = require("cors");
 
 const globalErrorHandler = require("./src/middleware/globalErrorHandler");
-const logger = require("./src/logger/logger");
 
 // sirf import – yahan db ka config run ho jayega
 const db = require("./src/config/db-connection");
@@ -23,14 +22,20 @@ const dashboardRouter = require("./src/routes/dashboardRouter");
 const loggerMiddleware = require("./src/middleware/loggermiddleware");
 const paymentRouter = require("./src/routes/paymentRouter");
 
-// CORS (prod)
+// CORS
+const allowedOrigins = {
+  development: ["http://localhost:3000"],
+  production: ["https://jobzyin.vercel.app"]
+};
+
 const corsOptions = {
-  origin: process.env.FRONTEND_URL,
+  origin: allowedOrigins[process.env.NODE_ENV],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   allowedHeaders: ["Content-Type", "Authorization"],
   maxAge: 86400,
 };
+
 app.use(cors(corsOptions));
 
 // Body parser
@@ -39,6 +44,20 @@ app.use(express.json());
 // Default route
 app.get("/", (req, res) => {
   res.send("Server is running!.");
+});
+
+// Health check route
+app.get("/health", async (req, res) => {
+  try {
+    await db.authenticate();
+    res.status(200).json({ 
+      status: "healthy", 
+      timestamp: new Date(),
+      uptime: process.uptime()
+    });
+  } catch (error) {
+    res.status(503).json({ status: "unhealthy" });
+  }
 });
 
 // Logger middleware
@@ -67,6 +86,7 @@ app.use((req, res, next) => {
 
 // Global error handler
 app.use(globalErrorHandler);
+
 
 (async () => {
   try {
