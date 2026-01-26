@@ -1,15 +1,28 @@
 const express = require("express");
 const authRouter = express.Router();
 const {
+  validateSignUp,
+  validateSignIn,
+  validateRefreshToken,
+} = require("../validations/authValidator");
+const validationErrorHandler = require("../middleware/validationErrorHandler");
+const {
   SignUp,
   SignIn,
   logout,
   refreshAccessToken,
 } = require("../controllers/authController");
 
-authRouter.post("/auth/signup", SignUp);
-authRouter.post("/auth/signin", SignIn);
-authRouter.post("/auth/logout", logout);
-authRouter.post("/auth/refresh", refreshAccessToken);
+const isAuth = require("../middleware/verifyJwt");
+
+authRouter.post("/auth/signup", validateSignUp, validationErrorHandler, SignUp);
+authRouter.post("/auth/signin", validateSignIn, validationErrorHandler, SignIn);
+authRouter.post(
+  "/auth/refresh",
+  validateRefreshToken,
+  validationErrorHandler,
+  refreshAccessToken,
+);
+authRouter.post("/auth/logout", isAuth, logout);
 
 module.exports = authRouter;

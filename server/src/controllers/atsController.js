@@ -49,10 +49,6 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
 });
 
-/**
- * POST: Check ATS Score
- * Upload resume and get ATS analysis
- */
 const checkATSScore = async (req, res, next) => {
   let filePath = null;
 

@@ -2,7 +2,7 @@ const { Payment, User } = require("../models");
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
 const { Op } = require("sequelize");
-const sequelize = require("../config/db-connection"); // ✅ Import sequelize
+const sequelize = require("../config/db-connection");
 
 // Initialize Razorpay instance
 const razorpay = new Razorpay({
@@ -24,7 +24,7 @@ const PLAN_PRICING = {
 
 // POST: Create Razorpay order
 const createOrder = async (req, res, next) => {
-  const t = await sequelize.transaction(); // ✅ Start transaction
+  const t = await sequelize.transaction();
   
   try {
     const userId = req.payload.id;
@@ -51,7 +51,7 @@ const createOrder = async (req, res, next) => {
     const amount = PLAN_PRICING[planType][planDuration];
 
     // Fetch user details
-    const user = await User.findByPk(userId, { transaction: t }); // ✅ With transaction
+    const user = await User.findByPk(userId, { transaction: t });
     if (!user) {
       await t.rollback();
       return res.status(404).json({
@@ -103,9 +103,9 @@ const createOrder = async (req, res, next) => {
         userName: user.name,
         userEmail: user.email,
       },
-    }, { transaction: t }); // ✅ With transaction
+    }, { transaction: t });
 
-    await t.commit(); // ✅ Commit transaction
+    await t.commit();
 
     return res.status(201).json({
       success: true,
@@ -126,7 +126,7 @@ const createOrder = async (req, res, next) => {
       razorpayKeyId: process.env.RAZORPAY_KEY_ID,
     });
   } catch (error) {
-    await t.rollback(); // ✅ Rollback on error
+    await t.rollback();
     console.error("[Create Order Error]:", error);
     next(error);
   }
@@ -134,7 +134,7 @@ const createOrder = async (req, res, next) => {
 
 // POST: Verify payment signature
 const verifyPayment = async (req, res, next) => {
-  const t = await sequelize.transaction(); // ✅ Start transaction
+  const t = await sequelize.transaction(); 
   
   try {
     const userId = req.payload.id;
@@ -157,8 +157,8 @@ const verifyPayment = async (req, res, next) => {
     // Find payment record
     const payment = await Payment.findOne({
       where: { orderId: razorpay_order_id, userId: userId },
-      transaction: t, // ✅ With transaction
-      lock: true, // ✅ Lock row to prevent concurrent updates
+      transaction: t,
+      lock: true,
     });
 
     if (!payment) {
@@ -181,9 +181,9 @@ const verifyPayment = async (req, res, next) => {
         status: "failed",
         errorCode: "SIGNATURE_MISMATCH",
         errorDescription: "Payment signature verification failed",
-      }, { transaction: t }); // ✅ With transaction
+      }, { transaction: t });
 
-      await t.commit(); // ✅ Commit the failure status
+      await t.commit(); 
 
       return res.status(400).json({
         success: false,
@@ -191,7 +191,7 @@ const verifyPayment = async (req, res, next) => {
       });
     }
 
-    // ✅ Update payment status to captured
+    // Update payment status to captured
     await payment.update({
       paymentId: razorpay_payment_id,
       razorpaySignature: razorpay_signature,
@@ -199,13 +199,13 @@ const verifyPayment = async (req, res, next) => {
       method: method,
     }, { transaction: t });
 
-    // ✅ Update user tier (CRITICAL: Must succeed with payment update)
+    // Update user tier (CRITICAL: Must succeed with payment update)
     const user = await User.findByPk(userId, { transaction: t, lock: true });
     await user.update({
       tier: payment.planType,
     }, { transaction: t });
 
-    await t.commit(); // ✅ Commit both updates together
+    await t.commit();
 
     return res.status(200).json({
       success: true,
@@ -226,7 +226,7 @@ const verifyPayment = async (req, res, next) => {
       },
     });
   } catch (error) {
-    await t.rollback(); // ✅ Rollback on error
+    await t.rollback();
     console.error("[Verify Payment Error]:", error);
     next(error);
   }
@@ -234,7 +234,7 @@ const verifyPayment = async (req, res, next) => {
 
 // POST: Handle payment failure
 const handlePaymentFailure = async (req, res, next) => {
-  const t = await sequelize.transaction(); // ✅ Start transaction
+  const t = await sequelize.transaction();
   
   try {
     const userId = req.payload.id;
@@ -270,7 +270,7 @@ const handlePaymentFailure = async (req, res, next) => {
       errorDescription: error_description,
     }, { transaction: t });
 
-    await t.commit(); // ✅ Commit transaction
+    await t.commit();
 
     return res.status(200).json({
       success: true,
@@ -284,7 +284,7 @@ const handlePaymentFailure = async (req, res, next) => {
       },
     });
   } catch (error) {
-    await t.rollback(); // ✅ Rollback on error
+    await t.rollback();
     console.error("[Handle Payment Failure Error]:", error);
     next(error);
   }
@@ -407,7 +407,7 @@ const getActiveSubscription = async (req, res, next) => {
 
 // POST: Initiate refund
 const initiateRefund = async (req, res, next) => {
-  const t = await sequelize.transaction(); // ✅ Start transaction
+  const t = await sequelize.transaction();
   
   try {
     const { paymentId } = req.params;
@@ -435,7 +435,7 @@ const initiateRefund = async (req, res, next) => {
       },
     });
 
-    // ✅ Update payment record
+    // Update payment record
     await payment.update({
       status: "refunded",
       refundId: refund.id,
@@ -443,11 +443,11 @@ const initiateRefund = async (req, res, next) => {
       refundReason: reason,
     }, { transaction: t });
 
-    // ✅ Downgrade user tier (must succeed with payment update)
+    // Downgrade user tier (must succeed with payment update)
     const user = await User.findByPk(payment.userId, { transaction: t, lock: true });
     await user.update({ tier: "free" }, { transaction: t });
 
-    await t.commit(); // ✅ Commit both updates
+    await t.commit();
 
     return res.status(200).json({
       success: true,
@@ -459,7 +459,7 @@ const initiateRefund = async (req, res, next) => {
       },
     });
   } catch (error) {
-    await t.rollback(); // ✅ Rollback on error
+    await t.rollback();
     console.error("[Refund Error]:", error);
     next(error);
   }
@@ -467,7 +467,7 @@ const initiateRefund = async (req, res, next) => {
 
 // POST: Webhook handler
 const handleWebhook = async (req, res, next) => {
-  const t = await sequelize.transaction(); // ✅ Start transaction
+  const t = await sequelize.transaction();
   
   try {
     const webhookSignature = req.headers["x-razorpay-signature"];
@@ -538,11 +538,11 @@ const handleWebhook = async (req, res, next) => {
         console.log(`Unhandled webhook event: ${event}`);
     }
 
-    await t.commit(); // ✅ Commit transaction
+    await t.commit();
 
     return res.status(200).json({ success: true });
   } catch (error) {
-    await t.rollback(); // ✅ Rollback on error
+    await t.rollback();
     console.error("[Webhook Error]:", error);
     next(error);
   }

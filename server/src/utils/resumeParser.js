@@ -1,72 +1,54 @@
-// const { PDFParse } = require("pdf-parse");
-// const mammoth = require("mammoth");
-// const fs = require("fs").promises;
-
-// console.log("pdf-parse type:", typeof PDFParse );
-// console.log("pdf-parse:", PDFParse );
-
-// /**
-//  * Parse resume file and extract text
-//  * Supports: PDF, DOCX, TXT
-//  */
-// const parseResume = async (filePath, fileType) => {
-//   try {
-//     let text = "";
-
-//     if (fileType === "application/pdf") {
-//       // Parse PDF
-//       const dataBuffer = await fs.readFile(filePath);
-//       const pdfParser = new PDFParse(dataBuffer); // ✅ Create instance
-//       const data = await pdfParser.parse(); // ✅ Call parse method
-//       text = data.text;
-//     } else if (
-//       fileType ===
-//         "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-//       fileType === "application/msword"
-//     ) {
-//       // Parse DOCX
-//       const result = await mammoth.extractRawText({ path: filePath });
-//       text = result.value;
-//     } else if (fileType === "text/plain") {
-//       // Parse TXT
-//       text = await fs.readFile(filePath, "utf8");
-//     } else {
-//       throw new Error("Unsupported file format");
-//     }
-
-//     return text.trim();
-//   } catch (error) {
-//     console.error("[Resume Parser] Error:", error.message);
-//     throw new Error("Failed to parse resume");
-//   }
-// };
-
-// module.exports = { parseResume };
-
-const PDFParser = require("pdf2json"); // ✅ NOT pdf-parse!
+const PDFParser = require("pdf2json");
 const mammoth = require("mammoth");
 const fs = require("fs").promises;
 
-/**
- * Parse PDF using pdf2json
- * Returns extracted text from PDF
- */
+// const parsePDF = (filePath) => {
+//   return new Promise((resolve, reject) => {
+//     const pdfParser = new PDFParser();
+
+//     // Error handler
+//     pdfParser.on("pdfParser_dataError", (errData) => {
+//       console.error("[PDF Parser] Error:", errData.parserError);
+//       reject(new Error(`PDF parsing failed: ${errData.parserError}`));
+//     });
+
+//     // Success handler
+//     pdfParser.on("pdfParser_dataReady", (pdfData) => {
+//       try {
+//         // Extract raw text content
+//         const text = pdfParser.getRawTextContent();
+//         console.log(`[PDF Parser] ✅ Extracted ${text.length} characters`);
+//         resolve(text);
+//       } catch (error) {
+//         console.error("[PDF Parser] Text extraction error:", error.message);
+//         reject(new Error(`Text extraction failed: ${error.message}`));
+//       }
+//     });
+
+//     // Load PDF file
+//     console.log(`[PDF Parser] Loading file: ${filePath}`);
+//     pdfParser.loadPDF(filePath);
+//   });
+// };
+
 const parsePDF = (filePath) => {
   return new Promise((resolve, reject) => {
-    const pdfParser = new PDFParser();
+    // Important: pass (this, 1)
+    const pdfParser = new PDFParser(null, 1);
 
-    // Error handler
     pdfParser.on("pdfParser_dataError", (errData) => {
       console.error("[PDF Parser] Error:", errData.parserError);
       reject(new Error(`PDF parsing failed: ${errData.parserError}`));
     });
 
-    // Success handler
     pdfParser.on("pdfParser_dataReady", (pdfData) => {
       try {
-        // Extract raw text content
-        const text = pdfParser.getRawTextContent();
-        console.log(`[PDF Parser] ✅ Extracted ${text.length} characters`);
+        const text = pdfParser.getRawTextContent() || "";
+        console.log(
+          `[PDF Parser] ✅ Extracted ${text.length} characters (raw text)`
+        );
+        // Debug first 200 chars
+        console.log("[PDF Parser] Sample text:", text.slice(0, 200));
         resolve(text);
       } catch (error) {
         console.error("[PDF Parser] Text extraction error:", error.message);
@@ -74,16 +56,12 @@ const parsePDF = (filePath) => {
       }
     });
 
-    // Load PDF file
     console.log(`[PDF Parser] Loading file: ${filePath}`);
     pdfParser.loadPDF(filePath);
   });
 };
 
-/**
- * Parse resume file and extract text
- * Supports: PDF, DOCX, TXT
- */
+
 const parseResume = async (filePath, fileType) => {
   try {
     let text = "";

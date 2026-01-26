@@ -1,9 +1,5 @@
 const { generateWithGemini } = require("../config/geminiAI");
 
-/**
- * Analyze resume using Gemini AI
- * Returns ATS score and detailed feedback
- */
 const analyzeResumeWithAI = async (resumeText, jobRole) => {
   try {
     console.log("🤖 [ATS Service] Starting AI analysis...");
@@ -11,23 +7,31 @@ const analyzeResumeWithAI = async (resumeText, jobRole) => {
     console.log(
       "🤖 [ATS Service] Resume Length:",
       resumeText.length,
-      "characters"
+      "characters",
     );
 
     // Create detailed prompt based on job role
-    const prompt = `You are an ATS (Applicant Tracking System) analyzer. Analyze the following resume for a ${jobRole} position.
+    const prompt = `You are a strict ATS (Applicant Tracking System) analyzer with professional recruiting standards. Analyze this resume for a ${jobRole} position.
 
 Resume Content:
 ${resumeText}
 
-Provide a detailed analysis in the following JSON format (return ONLY valid JSON, no markdown, no code blocks):
+CRITICAL SCORING GUIDELINES:
+- Be realistic and critical - most resumes have room for improvement
+- Maximum score is capped at 80/100 (only exceptional resumes with perfect formatting, strong achievements, and excellent keyword optimization reach 75-80)
+- Typical good resumes score 60-70
+- Average resumes score 50-60
+- Weak resumes score below 50
+- Deduct points for: missing sections, vague descriptions, lack of quantifiable achievements, poor keyword optimization, formatting issues
+
+Provide analysis in this EXACT JSON format (return ONLY valid JSON, no markdown, no code blocks):
 {
-  "atsScore": <number between 0-100>,
-  "overallFeedback": "<brief summary>",
+  "atsScore": <number between 0-80, typically 50-70>,
+  "overallFeedback": "<2-3 sentence critical summary explaining the score>",
   "strengths": ["<strength1>", "<strength2>", "<strength3>"],
   "weaknesses": ["<weakness1>", "<weakness2>", "<weakness3>"],
   "missingKeywords": ["<keyword1>", "<keyword2>", "<keyword3>"],
-  "suggestions": ["<suggestion1>", "<suggestion2>", "<suggestion3>"],
+  "suggestions": ["<actionable suggestion1>", "<actionable suggestion2>", "<actionable suggestion3>"],
   "sectionScores": {
     "contactInfo": <0-100>,
     "summary": <0-100>,
@@ -42,14 +46,15 @@ Provide a detailed analysis in the following JSON format (return ONLY valid JSON
   }
 }
 
-Scoring Criteria:
-- Contact Info: Phone, email, LinkedIn presence, Github (if applicable)
-- Summary: Clear, concise, role-specific
-- Experience: Measurable achievements, relevant experience for ${jobRole}
-- Skills: Technical skills matching ${jobRole} requirements
-- Education: Relevant degrees/certifications
-- Formatting: ATS-friendly format, clear sections, no images/tables`;
+Scoring Rubric (be strict):
+- Contact Info (0-100): Complete contact details, LinkedIn URL, professional email, location
+- Summary (0-100): Role-specific, quantified achievements, clear value proposition (most resumes: 50-70)
+- Experience (0-100): Measurable results, action verbs, relevance to ${jobRole}, 3+ years recent experience (most resumes: 50-65)
+- Skills (0-100): Technical skills matching ${jobRole}, proficiency levels stated, balanced hard/soft skills (most resumes: 55-70)
+- Education (0-100): Relevant degree, certifications, ongoing learning
+- Formatting (0-100): ATS-compatible (no tables/images/headers), clear hierarchy, consistent formatting, proper use of keywords
 
+Remember: Score critically. A score of 70+ means the resume is genuinely strong and competitive.`;
     // ✅ Use generateWithGemini instead of model.generateContent
     const aiResponse = await generateWithGemini(prompt);
 
@@ -68,7 +73,7 @@ Scoring Criteria:
       console.error("🤖 [ATS Service] ❌ Invalid JSON response");
       console.error(
         "Raw response (first 500 chars):",
-        aiResponse.substring(0, 500)
+        aiResponse.substring(0, 500),
       );
       throw new Error("Invalid AI response format");
     }
@@ -76,7 +81,7 @@ Scoring Criteria:
     const analysis = JSON.parse(jsonMatch[0]);
     console.log(
       "🤖 [ATS Service] ✅ Parsed successfully. ATS Score:",
-      analysis.atsScore
+      analysis.atsScore,
     );
 
     return analysis;
@@ -100,9 +105,6 @@ Scoring Criteria:
   }
 };
 
-/**
- * Get job role specific keywords
- */
 const getJobRoleKeywords = (jobRole) => {
   const keywordMap = {
     frontend: [
@@ -162,14 +164,10 @@ const getJobRoleKeywords = (jobRole) => {
   return keywordMap[jobRole.toLowerCase()] || [];
 };
 
-/**
- * Get AI-powered keyword suggestions
- * Pro feature: Detailed keyword analysis with context
- */
 const getKeywordSuggestions = async (
   resumeText,
   jobRole,
-  jobDescription = ""
+  jobDescription = "",
 ) => {
   try {
     console.log("🤖 [Keyword Suggestions] Starting analysis...");
@@ -243,10 +241,6 @@ ${jobDescription ? "6. Keywords from the provided job description" : ""}`;
   }
 };
 
-/**
- * Compare resume with job description
- * Extract matching and missing keywords
- */
 const compareWithJobDescription = (resumeText, jobDescription) => {
   // Simple keyword extraction (can be enhanced with NLP)
   const resumeWords = resumeText.toLowerCase().match(/\b[a-z]{3,}\b/g) || [];

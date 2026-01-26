@@ -12,69 +12,99 @@ const {
   exportJobsPDF,
   exportJobsCSV,
   advancedSearch,
-  basicSearch
+  basicSearch,
 } = require("../controllers/jobController");
 
-// ✅ NEW MIDDLEWARE
+const {
+  validateCreateJob,
+  validateGetAllJobs,
+  validateGetJobById,
+  validateUpdateJob,
+  validateDeleteJob,
+  validateBasicSearch,
+  validateAdvancedSearch,
+} = require("../validations/jobValidator");
+const validationErrorHandler = require("../middleware/validationErrorHandler");
+
 const isAuth = require("../middleware/verifyJwt");
 const checkFeatureAccess = require("../middleware/checkFeatureAccess");
 const checkResourceQuota = require("../middleware/checkResourceQuota");
 
-// All routes require authentication
 jobRouter.use(isAuth);
 
 // ************* QUOTA & STATS ROUTES ************
-jobRouter.get(
-  "/jobs/quota",
-  checkResourceQuota("jobs", false), // false = don't block, just attach quota
-  getQuotaInfo
-);
-// GET: Job statistics (Basic for all, Advanced for Premium+)
-jobRouter.get(
-  "/jobs/stats",
-  checkResourceQuota("jobs", false), // Attach quota info
-  getJobStats
-);
+jobRouter.get("/jobs/quota", checkResourceQuota("jobs", false), getQuotaInfo);
+
+// ************ Job statistics (Basic for all, Advanced for Premium+) ******************
+jobRouter.get("/jobs/stats", checkResourceQuota("jobs", false), getJobStats);
 
 // ************ EXPORT ROUTES (Premium+ only) ******************
 jobRouter.get(
   "/jobs/export/pdf",
   checkFeatureAccess("PDF_EXPORT"),
-  exportJobsPDF
+  exportJobsPDF,
 );
 
 // GET: Export jobs as CSV (Premium+ only)
 jobRouter.get(
   "/jobs/export/csv",
-  checkFeatureAccess("CSV_EXPORT"), // Check if user has CSV export
-  exportJobsCSV
+  checkFeatureAccess("CSV_EXPORT"),
+  exportJobsCSV,
 );
 
 // ************** SEARCH ROUTES ****************
 // POST: Advanced search with filters (Premium+ only)
 jobRouter.post(
   "/jobs/search/advanced",
-  checkFeatureAccess("JOB_ADVANCED_FILTERS"), // Premium+ only
-  advancedSearch
+  checkFeatureAccess("JOB_ADVANCED_FILTERS"),
+  validateAdvancedSearch,
+  validationErrorHandler,
+  advancedSearch,
 );
+
 jobRouter.get(
   "/jobs",
-  checkResourceQuota("jobs", false), // Don't block, just attach quota
-  getAllJobs
+  checkResourceQuota("jobs", false),
+  validateGetAllJobs,
+  validationErrorHandler,
+  getAllJobs,
 );
 
 // ****************JOB CRUD ROUTES ****************
 jobRouter.post(
   "/jobs/create",
-  checkResourceQuota("jobs", true), // true = block if quota exceeded
-  createJob
+  validateCreateJob,
+  validationErrorHandler,
+  checkResourceQuota("jobs", true),
+  createJob,
 );
+
 jobRouter.post(
   "/jobs/search",
-  basicSearch
+  validateBasicSearch,
+  validationErrorHandler,
+  basicSearch,
 );
-jobRouter.get("/jobs/:jobId", getJobById);
-jobRouter.put("/jobs/:jobId", updateJob);
-jobRouter.delete("/jobs/:jobId", deleteJob);
+
+jobRouter.get(
+  "/jobs/:jobId",
+  validateGetJobById,
+  validationErrorHandler,
+  getJobById,
+);
+
+jobRouter.put(
+  "/jobs/:jobId",
+  validateUpdateJob,
+  validationErrorHandler,
+  updateJob,
+);
+
+jobRouter.delete(
+  "/jobs/:jobId",
+  validateDeleteJob,
+  validationErrorHandler,
+  deleteJob,
+);
 
 module.exports = jobRouter;

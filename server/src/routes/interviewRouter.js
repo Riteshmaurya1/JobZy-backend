@@ -11,7 +11,15 @@ const {
   getAllInterviews,
 } = require("../controllers/interviewController");
 
-// ✅ NEW MIDDLEWARE
+const {
+  validateScheduleInterview,
+  validateGetAllInterviews,
+  validateGetInterviewById,
+  validateUpdateInterview,
+  validateDeleteInterview,
+} = require("../validations/interviewValidator");
+const validationErrorHandler = require("../middleware/validationErrorHandler");
+
 const isAuth = require("../middleware/verifyJwt");
 const checkFeatureAccess = require("../middleware/checkFeatureAccess");
 const checkResourceQuota = require("../middleware/checkResourceQuota");
@@ -24,35 +32,54 @@ interviewRouter.use(isAuth);
 // GET: All upcoming interviews (across all jobs)
 interviewRouter.get(
   "/interviews/upcoming",
-  checkResourceQuota("interviews", false), // Don't block, just attach quota
-  getUpcomingInterviews
+  checkResourceQuota("interviews", false),
+  getUpcomingInterviews,
 );
 
 // GET: All interviews (with quota info)
 interviewRouter.get(
   "/interviews",
-  checkResourceQuota("interviews", false), // Don't block, just attach quota
-  getAllInterviews
+  checkResourceQuota("interviews", false),
+  validateGetAllInterviews,
+  validationErrorHandler,
+  getAllInterviews,
 );
 
 // POST: Schedule interview for a job (check quota)
 interviewRouter.post(
   "/jobs/:jobId/interviews",
-  checkFeatureAccess("INTERVIEW_SCHEDULING"), // Check if user can schedule
-  checkResourceQuota("interviews", true), // Block if quota exceeded
-  scheduleInterview
+  checkFeatureAccess("INTERVIEW_SCHEDULING"),
+  checkResourceQuota("interviews", true),
+  validateScheduleInterview,
+  validationErrorHandler,
+  scheduleInterview,
 );
 
 // GET: All interviews for specific job
 interviewRouter.get("/jobs/:jobId/interviews", getInterviewsByJob);
 
 // GET: Single interview
-interviewRouter.get("/interviews/:interviewId", getInterviewById);
+interviewRouter.get(
+  "/interviews/:interviewId",
+  validateGetInterviewById,
+  validationErrorHandler,
+  getInterviewById,
+);
 
 // PUT: Update interview
-interviewRouter.put("/interviews/:interviewId", updateInterview);
+interviewRouter.put(
+  "/interviews/:interviewId",
+  validateUpdateInterview,
+  validationErrorHandler,
+  updateInterview,
+);
 
 // DELETE: Delete interview
-interviewRouter.delete("/interviews/:interviewId", deleteInterview);
+interviewRouter.delete(
+  "/interviews/:interviewId",
+  validateDeleteInterview,
+  validationErrorHandler,
+  deleteInterview,
+);
 
 module.exports = interviewRouter;
