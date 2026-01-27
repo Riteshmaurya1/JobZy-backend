@@ -2,35 +2,6 @@ const PDFParser = require("pdf2json");
 const mammoth = require("mammoth");
 const fs = require("fs").promises;
 
-// const parsePDF = (filePath) => {
-//   return new Promise((resolve, reject) => {
-//     const pdfParser = new PDFParser();
-
-//     // Error handler
-//     pdfParser.on("pdfParser_dataError", (errData) => {
-//       console.error("[PDF Parser] Error:", errData.parserError);
-//       reject(new Error(`PDF parsing failed: ${errData.parserError}`));
-//     });
-
-//     // Success handler
-//     pdfParser.on("pdfParser_dataReady", (pdfData) => {
-//       try {
-//         // Extract raw text content
-//         const text = pdfParser.getRawTextContent();
-//         console.log(`[PDF Parser] ✅ Extracted ${text.length} characters`);
-//         resolve(text);
-//       } catch (error) {
-//         console.error("[PDF Parser] Text extraction error:", error.message);
-//         reject(new Error(`Text extraction failed: ${error.message}`));
-//       }
-//     });
-
-//     // Load PDF file
-//     console.log(`[PDF Parser] Loading file: ${filePath}`);
-//     pdfParser.loadPDF(filePath);
-//   });
-// };
-
 const parsePDF = (filePath) => {
   return new Promise((resolve, reject) => {
     // Important: pass (this, 1)

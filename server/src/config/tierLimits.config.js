@@ -17,7 +17,7 @@ module.exports = {
     jobs: 150,
     interviews: 500,
     notes: 200,
-    aiResumeGenerations: 15, 
+    aiResumeGenerations: 15,
     atsChecks: 20,
     emailsPerMonth: 600,
     reminderEmailsPerJob: 5,
@@ -36,5 +36,7 @@ module.exports = {
     reminderEmailsPerJob: 15,
     apiCallsPerHour: 5000,
     maxFileSizeMB: 20,
+    prioritySupport: true,
+    documents: 100,
   },
 };

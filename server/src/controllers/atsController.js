@@ -6,22 +6,14 @@ const {
   analyzeResumeWithAI,
   getJobRoleKeywords,
   getKeywordSuggestions,
-  compareWithJobDescription
+  compareWithJobDescription,
 } = require("../services/atsService");
-const { User } = require("../models");
+
+const { User, Document } = require("../models");
+const { uploadResumeToS3 } = require("../services/s3Service");
 
 // Configure multer for file upload
-const storage = multer.diskStorage({
-  destination: async (req, file, cb) => {
-    const uploadDir = path.join(__dirname, "../uploads/resumes");
-    await fs.mkdir(uploadDir, { recursive: true });
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `${Date.now()}-${file.originalname}`;
-    cb(null, uniqueName);
-  },
-});
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   const allowedTypes = [
@@ -36,9 +28,9 @@ const fileFilter = (req, file, cb) => {
   } else {
     cb(
       new Error(
-        "Invalid file type. Only PDF, DOC, DOCX, and TXT files are allowed."
+        "Invalid file type. Only PDF, DOC, DOCX, and TXT files are allowed.",
       ),
-      false
+      false,
     );
   }
 };
@@ -55,7 +47,6 @@ const checkATSScore = async (req, res, next) => {
   try {
     const userId = req.payload.id;
     const { jobRole } = req.body;
-    // const jobRole = "frontend";
     console.log(jobRole);
 
     // Validation
@@ -73,7 +64,11 @@ const checkATSScore = async (req, res, next) => {
       });
     }
 
-    filePath = req.file.path;
+    // Save buffer to temp file (parseResume needs file path)
+    const uploadDir = path.join(__dirname, "../uploads/resumes");
+    await fs.mkdir(uploadDir, { recursive: true });
+    filePath = path.join(uploadDir, `${Date.now()}-${req.file.originalname}`);
+    await fs.writeFile(filePath, req.file.buffer);
 
     // Parse resume
     const resumeText = await parseResume(filePath, req.file.mimetype);
@@ -91,6 +86,22 @@ const checkATSScore = async (req, res, next) => {
     // Get expected keywords for job role
     const expectedKeywords = getJobRoleKeywords(jobRole);
 
+    // Upload resume to S3
+    const uploadResult = await uploadResumeToS3(req.file, userId);
+
+    // Create Document record with ATS info
+    const document = await Document.create({
+      userId,
+      fileName: uploadResult.fileName,
+      s3Key: uploadResult.s3Key,
+      fileSize: uploadResult.fileSize,
+      fileType: req.file.mimetype,
+      uploadSource: "ats_checker",
+      atsScore: analysis.atsScore,
+      atsAnalysis: analysis,
+      keywords: expectedKeywords,
+    });
+
     // Increment user's ATS check counter
     await User.increment("monthlyATSChecks", { where: { id: userId } });
 
@@ -104,7 +115,8 @@ const checkATSScore = async (req, res, next) => {
         ...analysis,
         jobRole,
         expectedKeywords,
-        quota: req.userQuota, // From middleware
+        quota: req.userQuota,
+        documentId: document.id,
       },
     });
   } catch (error) {
@@ -186,7 +198,7 @@ const getKeywordSuggestionsController = async (req, res, next) => {
     const suggestions = await getKeywordSuggestions(
       resumeText,
       jobRole,
-      jobDescription
+      jobDescription,
     );
 
     // If job description provided, compare keywords

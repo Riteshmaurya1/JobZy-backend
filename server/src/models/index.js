@@ -2,6 +2,7 @@ const User = require("./userModel");
 const Job = require("./jobModel");
 const Interview = require("./interviewModel");
 const Payment = require("./paymentModel");
+const Document = require("./documentModel");
 
 // User -> Job (One-to-Many)
 User.hasMany(Job, {
@@ -29,9 +30,15 @@ Interview.belongsTo(Job, {
 User.hasMany(Payment, { foreignKey: "userId", as: "payments" });
 Payment.belongsTo(User, { foreignKey: "userId", as: "user" });
 
+
+// Define associations (if any)
+User.hasMany(Document, { foreignKey: "userId" });
+Document.belongsTo(User, { foreignKey: "userId" });
+
 module.exports = {
   User,
   Job,
   Interview,
   Payment,
+  Document,
 };

@@ -15,9 +15,9 @@ module.exports = {
     pro: true,
   },
   JOB_ADVANCED_FILTERS: {
-    free: false, // ❌ Blocked
-    premium: true, // ✅ Allowed
-    pro: true, // ✅ Allowed
+    free: false,
+    premium: true,
+    pro: true,
   },
 
   // Interview Features
@@ -29,73 +29,80 @@ module.exports = {
 
   // Email Features
   EMAIL_REMINDERS: {
-    free: true, // ✅ Basic reminders only
+    free: true, 
     premium: true,
     pro: true,
   },
 
   // AI Features (NEW)
   AI_RESUME_BUILDER: {
-    free: false, // ❌ Blocked
-    premium: true, // ✅ Limited usage
-    pro: true, // ✅ Unlimited
+    free: false,
+    premium: true,
+    pro: true,
   },
 
   AI_RESUME_OPTIMIZATION: {
-    free: false, // ❌ Blocked
-    premium: true, // ✅ Allowed
-    pro: true, // ✅ Allowed
+    free: false,
+    premium: true, 
+    pro: true,
   },
 
   // ATS Features (NEW)
   ATS_SCORE_CHECKER: {
-    free: false, // ❌ Blocked
-    premium: true, // ✅ Limited checks
-    pro: true, // ✅ Unlimited
+    free: false, 
+    premium: true, 
+    pro: true,
   },
 
   ATS_CHECKER: {
-    free: false, // ❌ Blocked
-    premium: true, // ✅ Limited checks
-    pro: true, // ✅ Unlimited
+    free: false, 
+    premium: true, 
+    pro: true, 
   },
 
   ATS_KEYWORD_SUGGESTIONS: {
-    free: false, // ❌ Blocked
-    premium: false, // ❌ Blocked
-    pro: true, // ✅ Only Pro
+    free: false,
+    premium: false, 
+    pro: true,
   },
 
   // Analytics Features
   BASIC_ANALYTICS: {
-    free: true, // ✅ Basic only
+    free: true,
     premium: true,
     pro: true,
   },
 
   ADVANCED_ANALYTICS: {
-    free: false, // ❌ Blocked
-    premium: true, // ✅ Allowed
-    pro: true, // ✅ Allowed
+    free: false,
+    premium: true,
+    pro: true,
   },
 
   // Export Features
   PDF_EXPORT: {
-    free: false, // ❌ Blocked
-    premium: true, // ✅ Allowed
-    pro: true, // ✅ Allowed
+    free: false,
+    premium: true, 
+    pro: true,
   },
 
   CSV_EXPORT: {
-    free: false, // ❌ Blocked
-    premium: true, // ✅ Allowed
-    pro: true, // ✅ Allowed
+    free: false,
+    premium: true,
+    pro: true,
   },
 
   // Support Features
   PRIORITY_SUPPORT: {
-    free: false, // ❌ Community only
-    premium: false, // ❌ Email support
-    pro: true, // ✅ Priority 24/7
+    free: false,
+    premium: false,
+    pro: true,
+  },
+
+  // Documents Features
+  DOCUMENT_STORAGE: {
+    free: false,
+    premium: false,
+    pro: true,
   },
 };

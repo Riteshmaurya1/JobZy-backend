@@ -21,11 +21,12 @@ const atsRouter = require("./src/routes/atsRouter");
 const dashboardRouter = require("./src/routes/dashboardRouter");
 const loggerMiddleware = require("./src/middleware/loggermiddleware");
 const paymentRouter = require("./src/routes/paymentRouter");
+const documentRouter = require("./src/routes/documentRouter");
 
 // CORS
 const allowedOrigins = {
   development: ["http://localhost:3000"],
-  production: ["https://jobzyin.vercel.app"]
+  production: ["https://jobzyin.vercel.app"],
 };
 
 const corsOptions = {
@@ -50,10 +51,10 @@ app.get("/", (req, res) => {
 app.get("/health", async (req, res) => {
   try {
     await db.authenticate();
-    res.status(200).json({ 
-      status: "healthy", 
+    res.status(200).json({
+      status: "healthy",
       timestamp: new Date(),
-      uptime: process.uptime()
+      uptime: process.uptime(),
     });
   } catch (error) {
     res.status(503).json({ status: "unhealthy" });
@@ -71,6 +72,7 @@ app.use("/api/v1", interviewRouter);
 app.use("/api/v1", atsRouter);
 app.use("/api/v1", dashboardRouter);
 app.use("/api/v1", paymentRouter);
+app.use("/api/v1", documentRouter);
 
 // Worker & cron
 startWorker();
@@ -86,7 +88,6 @@ app.use((req, res, next) => {
 
 // Global error handler
 app.use(globalErrorHandler);
-
 
 (async () => {
   try {
