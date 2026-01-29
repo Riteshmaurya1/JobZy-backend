@@ -24,15 +24,50 @@ const paymentRouter = require("./src/routes/paymentRouter");
 const documentRouter = require("./src/routes/documentRouter");
 
 // CORS
+const isDevelopment =
+  process.env.NODE_ENV === "development" || !process.env.NODE_ENV;
+const isProduction = process.env.NODE_ENV === "production";
+
 const allowedOrigins = {
-  development: ["http://localhost:3000"],
-  production: ["https://jobzyin.vercel.app"],
+  development: ["http://localhost:5500", "http://127.0.0.1:5500"],
+  production: ["https://jobzy.site"],
 };
 
 const corsOptions = {
-  origin: allowedOrigins[process.env.NODE_ENV],
+  origin: function (origin, callback) {
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    const allowedList = isDevelopment
+      ? allowedOrigins.development
+      : allowedOrigins.production;
+
+    // In development, allow all localhost origins and file:// protocol
+    if (isDevelopment) {
+      if (
+        origin.startsWith("http://localhost") ||
+        origin.startsWith("http://127.0.0.1") ||
+        origin === "file://"
+      ) {
+        return callback(null, true);
+      }
+    }
+
+    // In production, only allow specific origins
+    if (allowedList.includes(origin)) {
+      return callback(null, true);
+    }
+
+    // Log unauthorized CORS attempts in production only
+    if (isProduction) {
+      console.warn(`CORS blocked request from origin: ${origin}`);
+    }
+
+    callback(new Error("Not allowed by CORS"));
+  },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   maxAge: 86400,
 };
@@ -41,6 +76,7 @@ app.use(cors(corsOptions));
 
 // Body parser
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Default route
 app.get("/", (req, res) => {
