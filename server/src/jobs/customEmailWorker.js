@@ -1,6 +1,8 @@
+// Email Worker with SQS Polling
+
 const {
   welcomeTemplate,
-  loginAlertTemplate
+  loginAlertTemplate,
 } = require("../utils/emailTemplates");
 const { sendEmail } = require("../services/emailService");
 const {
@@ -8,98 +10,154 @@ const {
   incrementEmailCount,
 } = require("../services/emailQuotaService");
 
-const emailQueue = [];
+// Import SQS queue service
+const {
+  queueEmailToSQS,
+  receiveEmailsFromSQS,
+  deleteEmailFromSQS,
+} = require("../services/sqsQueueService");
+
 let isProcessing = false;
 
-function queueEmail(type, data) {
-  emailQueue.push({ type, data, id: Date.now(), retries: 0 });
-  processQueue();
+/**
+ * Queue an email job to SQS
+ */
+async function queueEmail(type, data) {
+  try {
+    await queueEmailToSQS(type, data);
+    console.log(`✅ [Worker] Queued to SQS: ${type}`);
+  } catch (error) {
+    console.error(`❌ [Worker] Failed to queue:`, error.message);
+  }
 }
 
+/**
+ * Process Queue - Poll SQS and send emails
+ */
 async function processQueue() {
-  if (isProcessing || emailQueue.length === 0) return;
+  if (isProcessing) return;
 
   isProcessing = true;
 
-  while (emailQueue.length > 0) {
-    const job = emailQueue.shift();
+  try {
+    // Receive from SQS
+    const messages = await receiveEmailsFromSQS(5);
 
-    try {
-      // ✅ CHECK EMAIL QUOTA BEFORE SENDING
-      if (job.data.userId) {
-        const quotaCheck = await checkEmailQuota(job.data.userId);
+    // Process each message
+    for (const message of messages) {
+      try {
+        const job = JSON.parse(message.Body);
 
-        if (!quotaCheck.allowed) {
-          console.log(
-            `[Email Worker] ⚠️ Quota exhausted for user ${job.data.userId}`
-          );
-          console.log(`[Email Worker] Quota:`, quotaCheck.quota);
+        console.log(`📧 [Worker] Processing: ${job.type} → ${job.data.email}`);
 
-          // ❌ SKIP SENDING - Quota exhausted
-          // Optionally: Store failed email attempt in database
-          continue;
+        // ============================================
+        // STEP 1: Check Email Quota
+        // ============================================
+        if (job.data.userId) {
+          const quotaCheck = await checkEmailQuota(job.data.userId);
+
+          if (!quotaCheck.allowed) {
+            console.log(
+              `⚠️ [Worker] Quota exhausted for user ${job.data.userId}`,
+            );
+            console.log(`[Worker] Quota:`, quotaCheck.quota);
+            console.log(`[Worker] Message will retry after visibility timeout`);
+            continue;
+          }
         }
-      }
 
-      // ✅ SEND EMAIL (existing logic)
-      let html;
+        // ============================================
+        // STEP 2: Send Email
+        // ============================================
+        let html;
 
-      if (job.type === "welcome") {
-        html = welcomeTemplate(job.data.name);
-        await sendEmail(job.data.email, "Welcome to JobZy 🎉", html, true);
-      } else if (job.type === "login-alert") {
-        html = loginAlertTemplate(
-          job.data.name,
-          job.data.device,
-          job.data.location,
-          job.data.loginTime
-        );
-        await sendEmail(
-          job.data.email,
-          "JobZy – New login detected",
-          html,
-          true
-        );
-      } else if (job.type === "interview-reminder") {
-        await sendEmail(job.data.email, job.data.subject, job.data.html, true);
-      } else if (job.type === "follow-up-reminder") {
-        await sendEmail(job.data.email, job.data.subject, job.data.html, true);
-      } else if (job.type === "job-created") {
-        await sendEmail(job.data.email, job.data.subject, job.data.html, true);
-      }
+        if (job.type === "welcome") {
+          html = welcomeTemplate(job.data.name);
+          await sendEmail(job.data.email, "Welcome to JobZy 🎉", html, true);
+        } else if (job.type === "login-alert") {
+          html = loginAlertTemplate(
+            job.data.name,
+            job.data.device,
+            job.data.location,
+            job.data.loginTime,
+          );
+          await sendEmail(
+            job.data.email,
+            "JobZy – New login detected",
+            html,
+            true,
+          );
+        } else if (job.type === "interview-reminder") {
+          await sendEmail(
+            job.data.email,
+            job.data.subject,
+            job.data.html,
+            true,
+          );
+        } else if (job.type === "follow-up-reminder") {
+          await sendEmail(
+            job.data.email,
+            job.data.subject,
+            job.data.html,
+            true,
+          );
+        } else if (job.type === "job-created") {
+          await sendEmail(
+            job.data.email,
+            job.data.subject,
+            job.data.html,
+            true,
+          );
+        }
 
-      // ✅ INCREMENT EMAIL COUNTER AFTER SUCCESSFUL SEND
-      if (job.data.userId) {
-        await incrementEmailCount(job.data.userId);
-      }
+        // ============================================
+        // STEP 3: Update Email Counter
+        // ============================================
+        if (job.data.userId) {
+          await incrementEmailCount(job.data.userId);
+        }
 
-      console.log(`[Email Worker] ✅ Sent: ${job.type} to ${job.data.email}`);
-    } catch (error) {
-      console.error(`[Email Worker] Failed: ${job.type} to ${job.data.email}`);
-      console.error(`[Email Worker] Error: ${error.message}`);
+        // ============================================
+        // STEP 4: Delete from SQS
+        // ============================================
+        await deleteEmailFromSQS(message.ReceiptHandle);
 
-      // Retry logic
-      if (job.retries < 3) {
-        job.retries++;
-        emailQueue.push(job);
         console.log(
-          `[Email Worker] Retry ${job.retries}/3 queued for ${job.data.email}`
+          `✅ [Worker] SUCCESS: ${job.type} sent to ${job.data.email}`,
+        );
+      } catch (error) {
+        console.error(`❌ [Worker] FAILED to process message:`, error.message);
+
+        console.log(
+          `[Worker] Message will reappear in queue after visibility timeout`,
         );
       }
     }
+  } catch (error) {
+    console.error(`❌ [Worker] Queue processing error:`, error.message);
+  } finally {
+    isProcessing = false;
   }
-
-  isProcessing = false;
 }
 
+/**
+ * Start the email worker
+ */
 function startWorker() {
-  setInterval(() => {
-    if (!isProcessing && emailQueue.length > 0) {
+  const pollInterval = setInterval(() => {
+    if (!isProcessing) {
       processQueue();
     }
-  }, 5000);
+  }, 10000);
 
-  console.log("✅ Email worker started with quota checking");
+  console.log("✅ [Worker] Email worker started (polling SQS queue)");
+  console.log("[Worker] Interval: 10 seconds");
+  console.log("[Worker] Max messages per poll: 5");
+
+  process.on("SIGTERM", () => {
+    console.log("🛑 [Worker] SIGTERM received, stopping email worker...");
+    clearInterval(pollInterval);
+  });
 }
 
 module.exports = { queueEmail, startWorker };
