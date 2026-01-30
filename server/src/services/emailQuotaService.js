@@ -1,5 +1,6 @@
 const { User } = require("../models");
 const tierLimits = require("../config/tierLimits.config");
+const logger = require("../logger/logger");
 
 /**
  * Check if user can send email based on quota
@@ -53,7 +54,7 @@ const checkEmailQuota = async (userId) => {
       user,
     };
   } catch (error) {
-    console.error("[Email Quota Service] Error:", error);
+    logger.warn("[Email Quota Service] Error:", error);
     throw error;
   }
 };
@@ -69,7 +70,7 @@ const incrementEmailCount = async (userId) => {
       await user.increment("monthlyEmailsSent");
     }
   } catch (error) {
-    console.error("[Email Quota Service] Increment Error:", error);
+    logger.warn("[Email Quota Service] Increment Error:", error);
   }
 };
 

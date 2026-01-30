@@ -21,6 +21,7 @@ const {
 const isAuth = require("../middleware/verifyJwt");
 const validationErrorHandler = require("../middleware/validationErrorHandler");
 const verifyRazorpayWebhook = require("../middleware/verifyRazorpayWebhook");
+const { paymentLimiter } = require("../middleware/api-limiter");
 
 
 
@@ -33,12 +34,14 @@ paymentRouter.use(isAuth);
 paymentRouter.post(
   "/payments/create-order",
   validateCreateOrder,
+  paymentLimiter,
   validationErrorHandler,
   createOrder,
 );
 paymentRouter.post(
   "/payments/verify",
   validateVerifyPayment,
+  paymentLimiter,
   validationErrorHandler,
   verifyPayment,
 );

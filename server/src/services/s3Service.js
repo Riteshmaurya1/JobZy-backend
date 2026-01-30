@@ -6,6 +6,7 @@ const {
 } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const crypto = require("crypto");
+const logger = require("../logger/logger");
 
 // Initialize S3 Client
 const s3Client = new S3Client({
@@ -20,7 +21,7 @@ const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME;
 
 const uploadResumeToS3 = async (file, userId) => {
   try {
-    console.log(`📤 [S3] Uploading resume for user: ${userId}`);
+    logger.info(`📤 [S3] Uploading resume for user: ${userId}`);
 
     if (!file || !file.buffer) {
       throw new Error("Invalid file object - missing buffer");
@@ -45,7 +46,7 @@ const uploadResumeToS3 = async (file, userId) => {
 
     await s3Client.send(command);
 
-    console.log(`✅ [S3] Resume uploaded: ${s3Key}`);
+    logger.info(`✅ [S3] Resume uploaded: ${s3Key}`);
 
     return {
       fileName: file.originalname,
@@ -54,7 +55,7 @@ const uploadResumeToS3 = async (file, userId) => {
       uploadedAt: new Date(),
     };
   } catch (error) {
-    console.error("❌ [S3] Upload error:", error.message);
+    logger.error("❌ [S3] Upload error:", error.message);
     throw new Error(`Failed to upload to S3: ${error.message}`);
   }
 };
@@ -70,11 +71,11 @@ const generateSignedDownloadUrl = async (s3Key, expiresIn = 3600) => {
 
     const signedUrl = await getSignedUrl(s3Client, command, { expiresIn });
 
-    console.log(`✅ [S3] Download URL generated (expires in ${expiresIn}s)`);
+    logger.info(`✅ [S3] Download URL generated (expires in ${expiresIn}s)`);
 
     return signedUrl;
   } catch (error) {
-    console.error("❌ [S3] Generate URL error:", error.message);
+    logger.error("❌ [S3] Generate URL error:", error.message);
     throw new Error(`Failed to generate download URL: ${error.message}`);
   }
 };
@@ -90,9 +91,9 @@ const deleteResumeFromS3 = async (s3Key) => {
 
     await s3Client.send(command);
 
-    console.log(`✅ [S3] Resume deleted: ${s3Key}`);
+    logger.info(`✅ [S3] Resume deleted: ${s3Key}`);
   } catch (error) {
-    console.error("❌ [S3] Delete error:", error.message);
+    logger.error("❌ [S3] Delete error:", error.message);
     throw new Error(`Failed to delete from S3: ${error.message}`);
   }
 };

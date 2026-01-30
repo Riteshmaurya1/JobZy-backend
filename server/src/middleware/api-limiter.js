@@ -12,6 +12,7 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Define authentication rate limiting middleware
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 min
   max: 5,
@@ -24,4 +25,33 @@ const authLimiter = rateLimit({
   skip: () => process.env.NODE_ENV === "development",
 });
 
-module.exports = {apiLimiter,authLimiter};
+// Define upload rate limiting middleware
+const uploadLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 20,
+  message: {
+    success: false,
+    message: "Upload limit reached. Please try again later",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Define payment rate limiting middleware
+const paymentLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10,
+  message: {
+    success: false,
+    message: "Too many payment requests. Please contact support",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+module.exports = {
+  apiLimiter,
+  authLimiter,
+  uploadLimiter,
+  paymentLimiter,
+};

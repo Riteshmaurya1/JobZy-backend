@@ -32,7 +32,7 @@ const isProduction = process.env.NODE_ENV === "production";
 
 const allowedOrigins = {
   development: ["http://localhost:5500", "http://127.0.0.1:5500"],
-  production: ["https://jobzy.site"],
+  production: ["https://jobzy.site", "https://www.jobzy.site"],
 };
 
 const corsOptions = {

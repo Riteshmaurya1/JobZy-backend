@@ -18,10 +18,10 @@ ${resumeText}
 
 CRITICAL SCORING GUIDELINES:
 - Be realistic and critical - most resumes have room for improvement
-- Maximum score is capped at 80/100 (only exceptional resumes with perfect formatting, strong achievements, and excellent keyword optimization reach 75-80)
-- Typical good resumes score 60-70
-- Average resumes score 50-60
-- Weak resumes score below 50
+- Maximum score is capped at 85/100 (only exceptional resumes with perfect formatting, strong achievements, and excellent keyword optimization reach 75-80)
+- Typical good resumes score 65-75
+- Average resumes score 55-65
+- Weak resumes score below 55
 - Deduct points for: missing sections, vague descriptions, lack of quantifiable achievements, poor keyword optimization, formatting issues
 
 Provide analysis in this EXACT JSON format (return ONLY valid JSON, no markdown, no code blocks):
@@ -54,7 +54,7 @@ Scoring Rubric (be strict):
 - Education (0-100): Relevant degree, certifications, ongoing learning
 - Formatting (0-100): ATS-compatible (no tables/images/headers), clear hierarchy, consistent formatting, proper use of keywords
 
-Remember: Score critically. A score of 70+ means the resume is genuinely strong and competitive.`;
+Remember: Score critically. A score of 80+ means the resume is genuinely strong and competitive.`;
     // ✅ Use generateWithGemini instead of model.generateContent
     const aiResponse = await generateWithGemini(prompt);
 

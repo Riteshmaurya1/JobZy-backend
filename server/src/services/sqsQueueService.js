@@ -6,6 +6,7 @@ const {
   DeleteMessageCommand,
   GetQueueAttributesCommand,
 } = require("@aws-sdk/client-sqs");
+const logger = require("../logger/logger");
 
 // Initialize SQS Client
 const sqs = new SQSClient({
@@ -36,11 +37,11 @@ async function queueEmailToSQS(type, data) {
 
   try {
     const result = await sqs.send(new SendMessageCommand(params));
-    console.log(`✅ [SQS] Email queued: ${type} → ${data.email}`);
-    console.log(`[SQS] Message ID: ${result.MessageId}`);
+    logger.info(`✅ [SQS] Email queued: ${type} → ${data.email}`);
+    logger.info(`[SQS] Message ID: ${result.MessageId}`);
     return result;
   } catch (error) {
-    console.error(
+    logger.error(
       `❌ [SQS] Failed to queue email to ${data.email}:`,
       error.message,
     );
@@ -66,10 +67,10 @@ async function receiveEmailsFromSQS(maxMessages = 5) {
       return [];
     }
 
-    console.log(`✅ [SQS] Received ${result.Messages.length} message(s)`);
+    logger.info(`✅ [SQS] Received ${result.Messages.length} message(s)`);
     return result.Messages;
   } catch (error) {
-    console.error(`❌ [SQS] Failed to receive messages:`, error.message);
+    logger.error(`❌ [SQS] Failed to receive messages:`, error.message);
     return [];
   }
 }
@@ -85,9 +86,9 @@ async function deleteEmailFromSQS(receiptHandle) {
 
   try {
     await sqs.send(new DeleteMessageCommand(params));
-    console.log(`✅ [SQS] Message deleted from queue`);
+    logger.info(`✅ [SQS] Message deleted from queue`);
   } catch (error) {
-    console.error(`❌ [SQS] Failed to delete message:`, error.message);
+    logger.error(`❌ [SQS] Failed to delete message:`, error.message);
   }
 }
 

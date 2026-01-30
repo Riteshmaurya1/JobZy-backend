@@ -1,4 +1,5 @@
 const { SESv2Client, SendEmailCommand } = require("@aws-sdk/client-sesv2");
+const logger = require("../logger/logger");
 
 // Initialize SESv2 Client
 const sesv2Client = new SESv2Client({
@@ -47,12 +48,12 @@ async function sendEmail(email, subject, content, isHtml = false) {
     const command = new SendEmailCommand(params);
     const result = await sesv2Client.send(command);
 
-    console.log(`✅ [SES] Email sent to ${email}`);
-    console.log(`   Message ID: ${result.MessageId}`);
+    logger.info(`✅ [SES] Email sent to ${email}`);
+    logger.info(`   Message ID: ${result.MessageId}`);
 
     return result;
   } catch (error) {
-    console.error(`❌ [SES] Failed to send to ${email}:`, error.message);
+    logger.error(`❌ [SES] Failed to send to ${email}:`, error.message);
     throw error;
   }
 }
