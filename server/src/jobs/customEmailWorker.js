@@ -143,24 +143,6 @@ async function processQueue() {
   }
 }
 
-// Start Worker - Poll SQS at intervals
-// function startWorker() {
-//   const pollInterval = setInterval(() => {
-//     if (!isProcessing) {
-//       processQueue();
-//     }
-//   }, 10000);
-
-//   console.log("✅ [Worker] Email worker started (polling SQS queue)");
-//   console.log("[Worker] Interval: 10 seconds");
-//   console.log("[Worker] Max messages per poll: 5");
-
-//   process.on("SIGTERM", () => {
-//     console.log("🛑 [Worker] SIGTERM received, stopping email worker...");
-//     clearInterval(pollInterval);
-//   });
-// }
-
 // ✅ FIXED VERSION
 let pollInterval = null;
 let isShuttingDown = false;

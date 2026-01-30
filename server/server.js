@@ -86,46 +86,46 @@ app.get("/", (req, res) => {
 
 // Health check route
 app.get("/health", async (req, res) => {
-    try {
-        // Check database connection
-        await sequelize.authenticate();
+  try {
+    // Check database connection
+    await sequelize.authenticate();
 
-        res.status(200).json({
-            status: "healthy",
-            timestamp: new Date().toISOString(),
-            uptime: process.uptime(),
-            environment: process.env.NODE_ENV,
-            database: "connected",
-        });
-    } catch (error) {
-        res.status(503).json({
-            status: "unhealthy",
-            timestamp: new Date().toISOString(),
-            error: "Database connection failed",
-        });
-    }
+    res.status(200).json({
+      status: "healthy",
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV,
+      database: "connected",
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: "unhealthy",
+      timestamp: new Date().toISOString(),
+      error: "Database connection failed",
+    });
+  }
 });
-
 
 // Logger middleware
 app.use(loggerMiddleware);
+
 // Security headers
 app.use(
-    helmet({
-        contentSecurityPolicy: {
-            directives: {
-                defaultSrc: ["'self'"],
-                styleSrc: ["'self'", "'unsafe-inline'"],
-                scriptSrc: ["'self'"],
-                imgSrc: ["'self'", "data:", "https:"],
-            },
-        },
-        hsts: {
-            maxAge: 31536000, // 1 year
-            includeSubDomains: true,
-            preload: true,
-        },
-    })
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", "data:", "https:"],
+      },
+    },
+    hsts: {
+      maxAge: 31536000, // 1 year
+      includeSubDomains: true,
+      preload: true,
+    },
+  }),
 );
 
 // Routes
@@ -141,9 +141,8 @@ app.use("/api/v1", dashboardRouter);
 app.use("/api/v1", paymentRouter);
 app.use("/api/v1", documentRouter);
 
-// Worker & cron
+// Worker
 startWorker();
-require("./src/cron/emailReminders");
 
 // 404 handler
 app.use((req, res, next) => {
