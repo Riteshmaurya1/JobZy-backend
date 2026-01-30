@@ -16,12 +16,15 @@ const {
   validateVerifyPayment,
   validateHandlePaymentFailure,
   validateGetPaymentHistory,
-  validateGetPaymentById,
 } = require("../validations/paymentValidator");
 
 const isAuth = require("../middleware/verifyJwt");
 const validationErrorHandler = require("../middleware/validationErrorHandler");
 const verifyRazorpayWebhook = require("../middleware/verifyRazorpayWebhook");
+
+
+
+paymentRouter.post("/payments/webhook", verifyRazorpayWebhook, handleWebhook);paymentRouter.post("/payments/webhook", verifyRazorpayWebhook, handleWebhook);
 
 // Protected routes
 paymentRouter.use(isAuth);
@@ -53,8 +56,6 @@ paymentRouter.get(
   validationErrorHandler,
   getPaymentHistory,
 );
-
-paymentRouter.post("/payments/webhook", verifyRazorpayWebhook, handleWebhook);
 
 paymentRouter.get("/payments/subscription", getActiveSubscription);
 

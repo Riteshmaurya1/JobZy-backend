@@ -9,9 +9,7 @@ const {
 } = require("../utils/emailTemplates");
 const { queueEmail } = require("../jobs/customEmailWorker");
 
-// ==========================================
 // 🎯 CRON 1: INTERVIEW REMINDER
-// ==========================================
 const INTERVIEW_CRON_SCHEDULE = "0 5 * * *";
 
 cron.schedule(INTERVIEW_CRON_SCHEDULE, async () => {
@@ -82,7 +80,7 @@ cron.schedule(INTERVIEW_CRON_SCHEDULE, async () => {
       const html = interviewReminderTemplate(
         user.name,
         job.company,
-        job.role,
+        job.position,
         interview.round,
         interviewDate,
         timeStr
@@ -109,12 +107,10 @@ cron.schedule(INTERVIEW_CRON_SCHEDULE, async () => {
   }
 });
 
-console.log(`✅ Interview reminder cron scheduled: ${INTERVIEW_CRON_SCHEDULE}`);
+console.log(` Interview reminder cron scheduled: ${INTERVIEW_CRON_SCHEDULE}`);
 
-// ==========================================
 // 📧 CRON 2: FOLLOW-UP REMINDER
-// ==========================================
-const FOLLOWUP_CRON_SCHEDULE = "0 9 * * *";
+const FOLLOWUP_CRON_SCHEDULE = "0 5 * * *";
 
 cron.schedule(FOLLOWUP_CRON_SCHEDULE, async () => {
   console.log("\n📧 [Follow-up Cron] Starting follow-up reminder check...");
@@ -167,23 +163,13 @@ cron.schedule(FOLLOWUP_CRON_SCHEDULE, async () => {
     for (const job of jobs) {
       const user = job.user;
 
-      // ✅ Convert to Date object first
-      const followUpDate = new Date(job.followUpDate);
-
-      // Format date
-      const dateStr = followUpDate.toLocaleDateString("en-IN", {
-        weekday: "long",
-        month: "long",
-        day: "numeric",
-      });
-
       // Generate email HTML
       const html = followUpReminderTemplate(
         user.name,
         job.company,
-        job.role,
-        dateStr,
-        job.status
+        job.position,
+        job.status,
+        job.appliedDate,
       );
 
       // Add to email queue
@@ -207,4 +193,4 @@ cron.schedule(FOLLOWUP_CRON_SCHEDULE, async () => {
   }
 });
 
-console.log(`✅ Follow-up reminder cron scheduled: ${FOLLOWUP_CRON_SCHEDULE}`);
+console.log(` Follow-up reminder cron scheduled: ${FOLLOWUP_CRON_SCHEDULE}`);

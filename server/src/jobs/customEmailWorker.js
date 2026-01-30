@@ -19,9 +19,7 @@ const {
 
 let isProcessing = false;
 
-/**
- * Queue an email job to SQS
- */
+// Queue email job
 async function queueEmail(type, data) {
   try {
     await queueEmailToSQS(type, data);
@@ -31,9 +29,7 @@ async function queueEmail(type, data) {
   }
 }
 
-/**
- * Process Queue - Poll SQS and send emails
- */
+// Process email queue
 async function processQueue() {
   if (isProcessing) return;
 
@@ -50,9 +46,7 @@ async function processQueue() {
 
         console.log(`📧 [Worker] Processing: ${job.type} → ${job.data.email}`);
 
-        // ============================================
-        // STEP 1: Check Email Quota
-        // ============================================
+        // Check email quota if userId is present
         if (job.data.userId) {
           const quotaCheck = await checkEmailQuota(job.data.userId);
 
@@ -66,9 +60,7 @@ async function processQueue() {
           }
         }
 
-        // ============================================
-        // STEP 2: Send Email
-        // ============================================
+        // Send email based on condition
         let html;
 
         if (job.type === "welcome") {
@@ -87,7 +79,15 @@ async function processQueue() {
             html,
             true,
           );
-        } else if (job.type === "interview-reminder") {
+        } else if (job.type === "payment-confirmation"){
+           await sendEmail(
+            job.data.email,
+            job.data.subject,
+            job.data.html,
+            true,
+          );
+        }
+         else if (job.type === "interview-reminder") {
           await sendEmail(
             job.data.email,
             job.data.subject,
@@ -108,18 +108,21 @@ async function processQueue() {
             job.data.html,
             true,
           );
+        } else if (job.type === "job-updated") {
+          await sendEmail(
+            job.data.email,
+            job.data.subject,
+            job.data.html,
+            true,
+          );
         }
 
-        // ============================================
-        // STEP 3: Update Email Counter
-        // ============================================
+        // Increment email count for quota tracking
         if (job.data.userId) {
           await incrementEmailCount(job.data.userId);
         }
 
-        // ============================================
-        // STEP 4: Delete from SQS
-        // ============================================
+        // Delete email from SQS
         await deleteEmailFromSQS(message.ReceiptHandle);
 
         console.log(
@@ -140,9 +143,7 @@ async function processQueue() {
   }
 }
 
-/**
- * Start the email worker
- */
+// Start Worker - Poll SQS at intervals
 function startWorker() {
   const pollInterval = setInterval(() => {
     if (!isProcessing) {

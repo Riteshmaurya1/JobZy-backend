@@ -3,6 +3,9 @@ const Razorpay = require("razorpay");
 const crypto = require("crypto");
 const { Op } = require("sequelize");
 const sequelize = require("../config/db-connection");
+const { queueEmail } = require("../jobs/customEmailWorker");
+const { paymentConfirmationTemplate } = require("../utils/emailTemplates");
+const { log } = require("console");
 
 // Initialize Razorpay instance
 const razorpay = new Razorpay({
@@ -25,7 +28,7 @@ const PLAN_PRICING = {
 // POST: Create Razorpay order
 const createOrder = async (req, res, next) => {
   const t = await sequelize.transaction();
-  
+
   try {
     const userId = req.payload.id;
     const { planType, planDuration = "monthly" } = req.body;
@@ -86,24 +89,27 @@ const createOrder = async (req, res, next) => {
     }
 
     // Save payment record in database
-    const payment = await Payment.create({
-      userId: userId,
-      orderId: razorpayOrder.id,
-      amount: amount,
-      currency: "INR",
-      status: "created",
-      planType: planType,
-      planDuration: planDuration,
-      receipt: receipt,
-      email: user.email,
-      contact: user.phoneNumber?.toString(),
-      validFrom: validFrom,
-      validUntil: validUntil,
-      metadata: {
-        userName: user.name,
-        userEmail: user.email,
+    const payment = await Payment.create(
+      {
+        userId: userId,
+        orderId: razorpayOrder.id,
+        amount: amount,
+        currency: "INR",
+        status: "created",
+        planType: planType,
+        planDuration: planDuration,
+        receipt: receipt,
+        email: user.email,
+        contact: user.phoneNumber?.toString(),
+        validFrom: validFrom,
+        validUntil: validUntil,
+        metadata: {
+          userName: user.name,
+          userEmail: user.email,
+        },
       },
-    }, { transaction: t });
+      { transaction: t },
+    );
 
     await t.commit();
 
@@ -134,8 +140,8 @@ const createOrder = async (req, res, next) => {
 
 // POST: Verify payment signature
 const verifyPayment = async (req, res, next) => {
-  const t = await sequelize.transaction(); 
-  
+  const t = await sequelize.transaction();
+
   try {
     const userId = req.payload.id;
     const {
@@ -175,15 +181,27 @@ const verifyPayment = async (req, res, next) => {
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
       .digest("hex");
 
+    // If already verified, return success (idempotent)
+    if (payment.status === "captured") {
+      await t.commit();
+      return res.json({
+        success: true,
+        message: "Payment already verified",
+      });
+    }
+
     if (generated_signature !== razorpay_signature) {
       // Update payment status to failed
-      await payment.update({
-        status: "failed",
-        errorCode: "SIGNATURE_MISMATCH",
-        errorDescription: "Payment signature verification failed",
-      }, { transaction: t });
+      await payment.update(
+        {
+          status: "failed",
+          errorCode: "SIGNATURE_MISMATCH",
+          errorDescription: "Payment signature verification failed",
+        },
+        { transaction: t },
+      );
 
-      await t.commit(); 
+      await t.commit();
 
       return res.status(400).json({
         success: false,
@@ -192,20 +210,56 @@ const verifyPayment = async (req, res, next) => {
     }
 
     // Update payment status to captured
-    await payment.update({
-      paymentId: razorpay_payment_id,
-      razorpaySignature: razorpay_signature,
-      status: "captured",
-      method: method,
-    }, { transaction: t });
+    await payment.update(
+      {
+        paymentId: razorpay_payment_id,
+        razorpaySignature: razorpay_signature,
+        status: "captured",
+        method: method,
+      },
+      { transaction: t },
+    );
 
     // Update user tier (CRITICAL: Must succeed with payment update)
     const user = await User.findByPk(userId, { transaction: t, lock: true });
-    await user.update({
-      tier: payment.planType,
-    }, { transaction: t });
+    await user.update(
+      {
+        tier: payment.planType,
+      },
+      { transaction: t },
+    );
 
     await t.commit();
+
+    try {
+      const planDisplayName =
+        payment.planType === "premium"
+          ? `JobZy Premium${payment.planDuration === "yearly" ? " (Yearly)" : ""}`
+          : `JobZy Pro${payment.planDuration === "yearly" ? " (Yearly)" : ""}`;
+
+      // ✅ Simple email without features - user can check on dashboard
+      const html = paymentConfirmationTemplate(
+        user.name,
+        planDisplayName,
+        payment.amount / 100,
+        payment.paymentId,
+        payment.createdAt,
+        payment.validFrom,
+        payment.validUntil,
+      );
+      queueEmail("payment-confirmation", {
+        userId: user.id,
+        email: user.email,
+        name: user.name,
+        subject: `💸 Payment Successful - Welcome to ${planDisplayName}!`,
+        html,
+      });
+      console.log(
+        `✅ [Payment Email] Queued for ${user.email} - ${planDisplayName}`,
+      );
+    } catch (emailError) {
+      console.error("⚠️ [Payment Email Error]:", emailError.message);
+    }
 
     return res.status(200).json({
       success: true,
@@ -235,7 +289,7 @@ const verifyPayment = async (req, res, next) => {
 // POST: Handle payment failure
 const handlePaymentFailure = async (req, res, next) => {
   const t = await sequelize.transaction();
-  
+
   try {
     const userId = req.payload.id;
     const { razorpay_order_id, error_code, error_description } = req.body;
@@ -264,11 +318,14 @@ const handlePaymentFailure = async (req, res, next) => {
     }
 
     // Update payment status to failed
-    await payment.update({
-      status: "failed",
-      errorCode: error_code,
-      errorDescription: error_description,
-    }, { transaction: t });
+    await payment.update(
+      {
+        status: "failed",
+        errorCode: error_code,
+        errorDescription: error_description,
+      },
+      { transaction: t },
+    );
 
     await t.commit();
 
@@ -384,7 +441,7 @@ const getActiveSubscription = async (req, res, next) => {
     }
 
     const daysRemaining = Math.ceil(
-      (activeSubscription.validUntil - currentDate) / (1000 * 60 * 60 * 24)
+      (activeSubscription.validUntil - currentDate) / (1000 * 60 * 60 * 24),
     );
 
     return res.status(200).json({
@@ -408,7 +465,7 @@ const getActiveSubscription = async (req, res, next) => {
 // POST: Initiate refund
 const initiateRefund = async (req, res, next) => {
   const t = await sequelize.transaction();
-  
+
   try {
     const { paymentId } = req.params;
     const { amount, reason } = req.body;
@@ -436,15 +493,21 @@ const initiateRefund = async (req, res, next) => {
     });
 
     // Update payment record
-    await payment.update({
-      status: "refunded",
-      refundId: refund.id,
-      refundAmount: refund.amount,
-      refundReason: reason,
-    }, { transaction: t });
+    await payment.update(
+      {
+        status: "refunded",
+        refundId: refund.id,
+        refundAmount: refund.amount,
+        refundReason: reason,
+      },
+      { transaction: t },
+    );
 
     // Downgrade user tier (must succeed with payment update)
-    const user = await User.findByPk(payment.userId, { transaction: t, lock: true });
+    const user = await User.findByPk(payment.userId, {
+      transaction: t,
+      lock: true,
+    });
     await user.update({ tier: "free" }, { transaction: t });
 
     await t.commit();
@@ -468,7 +531,7 @@ const initiateRefund = async (req, res, next) => {
 // POST: Webhook handler
 const handleWebhook = async (req, res, next) => {
   const t = await sequelize.transaction();
-  
+
   try {
     const webhookSignature = req.headers["x-razorpay-signature"];
     const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
@@ -499,10 +562,10 @@ const handleWebhook = async (req, res, next) => {
             paymentId: paymentEntity.id,
             method: paymentEntity.method,
           },
-          { 
+          {
             where: { orderId: paymentEntity.order_id },
-            transaction: t 
-          }
+            transaction: t,
+          },
         );
         break;
 
@@ -513,10 +576,10 @@ const handleWebhook = async (req, res, next) => {
             errorCode: paymentEntity.error_code,
             errorDescription: paymentEntity.error_description,
           },
-          { 
+          {
             where: { orderId: paymentEntity.order_id },
-            transaction: t 
-          }
+            transaction: t,
+          },
         );
         break;
 
@@ -527,10 +590,10 @@ const handleWebhook = async (req, res, next) => {
             refundId: paymentEntity.id,
             refundAmount: paymentEntity.amount,
           },
-          { 
+          {
             where: { paymentId: paymentEntity.payment_id },
-            transaction: t 
-          }
+            transaction: t,
+          },
         );
         break;
 

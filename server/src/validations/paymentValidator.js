@@ -34,8 +34,8 @@ const validateVerifyPayment = [
     .trim()
     .notEmpty()
     .withMessage("Razorpay signature is required")
-    .isLength({ min: 64 })
-    .withMessage("Invalid signature format (must be at least 64 characters)"),
+    .isLength({ min: 50 })
+    .withMessage("Invalid signature format (must be at least 50 characters)"),
 
   body("method")
     .optional({ checkFalsy: true })

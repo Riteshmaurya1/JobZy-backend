@@ -41,6 +41,7 @@ const Payment = sequelize.define(
         "pending",
         "authorized",
         "created",
+        "captured",
         "failed",
         "refunded"
       ),
@@ -128,9 +129,14 @@ const Payment = sequelize.define(
         unique: true,
         fields: ["orderId"],
       },
+     // Add composite unique constraint instead
       {
         unique: true,
-        fields: ["paymentId"],
+        fields: ["orderId", "paymentId"],
+        name: "unique_order_payment",
+        where: {
+          paymentId: { [Sequelize.Op.ne]: null } // Only apply when paymentId is not null
+        }
       },
       {
         fields: ["status"],

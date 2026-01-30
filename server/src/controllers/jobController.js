@@ -8,7 +8,10 @@ const {
 const PDFDocument = require("pdfkit");
 const fs = require("fs");
 const path = require("path");
-const { generatePDFTemplate, generateHTMLResponse } = require("../utils/pdfTemplate");
+const {
+  generatePDFTemplate,
+  generateHTMLResponse,
+} = require("../utils/pdfTemplate");
 
 // POST: Create new job application
 const createJob = async (req, res, next) => {
@@ -56,23 +59,25 @@ const createJob = async (req, res, next) => {
       status: status || "applied",
     });
 
-    // ✅ INCREMENT USAGE COUNTER
+    // INCREMENT USAGE COUNTER
     await req.user.increment("monthlyJobsUsed");
 
-    // ✅ Send job created email
+    // Send job created email
     try {
       const user = await User.findByPk(userId); // Fetch user
       const html = jobCreatedTemplate(
         user.name,
         job.company,
         job.position,
-        job.appliedDate
+        job.location,
+        job.workMode,
+        job.appliedDate,
       );
       queueEmail("job-created", {
         userId: user.id, // ✅ Add userId for quota check
         email: user.email,
         name: user.name,
-        subject: `✅ Job Application Tracked: ${company}`,
+        subject: `New Job Added : ${company}`,
         html,
       });
     } catch (emailError) {
@@ -246,7 +251,7 @@ const updateJob = async (req, res, next) => {
 
     await job.update(filteredUpdates);
 
-    // ✅ Send status update email (only if status changed)
+    // Send status update email (only if status changed)
     if (updates.status && updates.status !== oldStatus) {
       try {
         const user = await User.findByPk(userId);
@@ -255,15 +260,16 @@ const updateJob = async (req, res, next) => {
           job.company,
           job.position,
           oldStatus,
-          job.status
+          job.status,
         );
         queueEmail("job-updated", {
-          userId: user.id, // ✅ Add userId for quota check
+          userId: user.id,
           email: user.email,
           name: user.name,
-          subject: `📊 Job Status Updated: ${job.company}`,
+          subject: `Job Status Updated: ${job.company}`,
           html,
         });
+        console.log("email is sended 🌎");
       } catch (emailError) {
         console.error("[Update Job] Email queue failed:", emailError.message);
       }
@@ -491,7 +497,7 @@ const exportJobsPDF = async (req, res, next) => {
         applied: jobs.filter((j) => j.status === "applied").length,
         screening: jobs.filter((j) => j.status === "screening").length,
         "interview-scheduled": jobs.filter(
-          (j) => j.status === "interview-scheduled"
+          (j) => j.status === "interview-scheduled",
         ).length,
         interviewed: jobs.filter((j) => j.status === "interviewed").length,
         offered: jobs.filter((j) => j.status === "offered").length,
@@ -554,7 +560,7 @@ const exportJobsCSV = async (req, res, next) => {
         job.jobType || "N/A",
         job.salary || "N/A",
         job.platform || "N/A",
-      ].join(",")
+      ].join(","),
     );
 
     const csv = [csvHeader, ...csvRows].join("\n");
@@ -563,7 +569,7 @@ const exportJobsCSV = async (req, res, next) => {
     res.setHeader("Content-Type", "text/csv");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename=jobs-${new Date().toISOString().split("T")[0]}.csv`
+      `attachment; filename=jobs-${new Date().toISOString().split("T")[0]}.csv`,
     );
 
     return res.send(csv);
