@@ -1,196 +1,521 @@
+// const cron = require("node-cron");
+// const { Op } = require("sequelize");
+// const Interview = require("../models/interviewModel");
+// const Job = require("../models/jobModel");
+// const User = require("../models/userModel");
+// const {
+//   interviewReminderTemplate,
+//   followUpReminderTemplate,
+// } = require("../utils/emailTemplates");
+// const { queueEmail } = require("../jobs/customEmailWorker");
+
+// // 🎯 CRON 1: INTERVIEW REMINDER
+// const INTERVIEW_CRON_SCHEDULE = "0 5 * * *";
+
+// cron.schedule(INTERVIEW_CRON_SCHEDULE, async () => {
+//   console.log("\n🔔 [Interview Cron] Starting interview reminder check...");
+//   const startTime = Date.now();
+
+//   try {
+//     // Get tomorrow's date range
+//     const tomorrow = new Date();
+//     tomorrow.setDate(tomorrow.getDate() + 1);
+//     tomorrow.setHours(0, 0, 0, 0);
+
+//     const dayAfterTomorrow = new Date(tomorrow);
+//     dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
+
+//     console.log(
+//       `[Interview Cron] Checking interviews for: ${tomorrow.toLocaleDateString()}`
+//     );
+
+//     // Find interviews scheduled for tomorrow
+//     const interviews = await Interview.findAll({
+//       where: {
+//         interviewDate: {
+//           [Op.gte]: tomorrow,
+//           [Op.lt]: dayAfterTomorrow,
+//         },
+//         status: "scheduled",
+//       },
+//       include: [
+//         {
+//           model: Job,
+//           as: "job",
+//           include: [
+//             {
+//               model: User,
+//               as: "user",
+//             },
+//           ],
+//         },
+//       ],
+//     });
+
+//     console.log(`[Interview Cron] Found ${interviews.length} interviews`);
+
+//     // Queue email for each interview
+//     let queuedCount = 0;
+//     for (const interview of interviews) {
+//       const user = interview.job.user;
+//       const job = interview.job;
+
+//       // ✅ Convert to Date object first
+//       const interviewDate = new Date(interview.interviewDate);
+
+//       // Format date nicely
+//       const dateStr = interviewDate.toLocaleDateString("en-IN", {
+//         weekday: "long",
+//         year: "numeric",
+//         month: "long",
+//         day: "numeric",
+//       });
+
+//       const timeStr = interviewDate.toLocaleTimeString("en-IN", {
+//         hour: "2-digit",
+//         minute: "2-digit",
+//       });
+
+//       // Generate email HTML
+//       const html = interviewReminderTemplate(
+//         user.name,
+//         job.company,
+//         job.position,
+//         interview.round,
+//         interviewDate,
+//         timeStr
+//       );
+
+//       // Add to email queue
+//       queueEmail("interview-reminder", {
+//         email: user.email,
+//         subject: `🎯 Interview Tomorrow - ${job.company}`,
+//         html: html,
+//       });
+
+//       queuedCount++;
+//       console.log(`  ✅ Queued: ${user.email} - ${job.company} (${job.role})`);
+//     }
+
+//     const duration = Date.now() - startTime;
+//     console.log(
+//       `[Interview Cron] ✅ Completed! Queued ${queuedCount} emails in ${duration}ms\n`
+//     );
+//   } catch (error) {
+//     console.error("❌ [Interview Cron] Error:", error.message);
+//     console.error(error.stack);
+//   }
+// });
+
+// console.log(` Interview reminder cron scheduled: ${INTERVIEW_CRON_SCHEDULE}`);
+
+// // 📧 CRON 2: FOLLOW-UP REMINDER
+// const FOLLOWUP_CRON_SCHEDULE = "0 5 * * *";
+
+// cron.schedule(FOLLOWUP_CRON_SCHEDULE, async () => {
+//   console.log("\n📧 [Follow-up Cron] Starting follow-up reminder check...");
+//   const startTime = Date.now();
+
+//   try {
+//     // Get today's date
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
+
+//     const tomorrow = new Date(today);
+//     tomorrow.setDate(tomorrow.getDate() + 1);
+
+//     console.log(
+//       `[Follow-up Cron] Checking follow-ups for: ${today.toLocaleDateString()}`
+//     );
+
+//     // Find jobs with follow-up date = today
+//     const jobs = await Job.findAll({
+//       where: {
+//         followUpDate: {
+//           [Op.gte]: today,
+//           [Op.lt]: tomorrow,
+//         },
+//         status: {
+//           [Op.in]: [
+//             "applied",
+//             "screening",
+//             "interview-scheduled",
+//             "interviewed",
+//             "offered",
+//             "rejected",
+//             "accepted",
+//             "withdrawn",
+//           ],
+//         },
+//       },
+//       include: [
+//         {
+//           model: User,
+//           as: "user",
+//         },
+//       ],
+//     });
+
+//     console.log(`[Follow-up Cron] Found ${jobs.length} follow-ups`);
+
+//     // Queue email for each follow-up
+//     let queuedCount = 0;
+//     for (const job of jobs) {
+//       const user = job.user;
+
+//       // Generate email HTML
+//       const html = followUpReminderTemplate(
+//         user.name,
+//         job.company,
+//         job.position,
+//         job.status,
+//         job.appliedDate,
+//       );
+
+//       // Add to email queue
+//       queueEmail("follow-up-reminder", {
+//         email: user.email,
+//         subject: `📌 Follow-up Reminder - ${job.company}`,
+//         html: html,
+//       });
+
+//       queuedCount++;
+//       console.log(`  ✅ Queued: ${user.email} - ${job.company} (${job.role})`);
+//     }
+
+//     const duration = Date.now() - startTime;
+//     console.log(
+//       `[Follow-up Cron] ✅ Completed! Queued ${queuedCount} emails in ${duration}ms\n`
+//     );
+//   } catch (error) {
+//     console.error("❌ [Follow-up Cron] Error:", error.message);
+//     console.error(error.stack);
+//   }
+// });
+
+// console.log(` Follow-up reminder cron scheduled: ${FOLLOWUP_CRON_SCHEDULE}`);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ✅ STANDALONE CRON WORKER (Batch Processing + Non-blocking)
+require("dotenv").config();
 const cron = require("node-cron");
 const { Op } = require("sequelize");
+const sequelize = require("../config/db-connection");
 const Interview = require("../models/interviewModel");
 const Job = require("../models/jobModel");
 const User = require("../models/userModel");
 const {
-  interviewReminderTemplate,
-  followUpReminderTemplate,
+    interviewReminderTemplate,
+    followUpReminderTemplate,
 } = require("../utils/emailTemplates");
 const { queueEmail } = require("../jobs/customEmailWorker");
+const logger = require("../logger/logger");
 
-// 🎯 CRON 1: INTERVIEW REMINDER
-const INTERVIEW_CRON_SCHEDULE = "0 5 * * *";
+logger.info("🚀 Email Reminder Cron Worker Started");
+logger.info(`Environment: ${process.env.NODE_ENV}`);
+
+// ✅ BATCH PROCESSING - Process emails in chunks
+const BATCH_SIZE = 10; // Process 10 emails at a time
+
+async function processBatch(items, processFn, batchName) {
+    let queuedCount = 0;
+    const totalBatches = Math.ceil(items.length / BATCH_SIZE);
+
+    for (let i = 0; i < items.length; i += BATCH_SIZE) {
+        const batch = items.slice(i, i + BATCH_SIZE);
+        const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
+
+        logger.info(
+            `[${batchName}] Processing batch ${batchNumber}/${totalBatches} (${batch.length} items)`
+        );
+
+        // ✅ Process batch in parallel (non-blocking)
+        await Promise.all(
+            batch.map(async (item) => {
+                try {
+                    await processFn(item);
+                    queuedCount++;
+                } catch (error) {
+                    logger.error(
+                        {
+                            err: error,
+                            batchName,
+                            item: item.id,
+                        },
+                        `Failed to process ${batchName}`
+                    );
+                }
+            })
+        );
+
+        // Small delay between batches to avoid overwhelming queue
+        if (i + BATCH_SIZE < items.length) {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+    }
+
+    return queuedCount;
+}
+
+// 🎯 CRON 1: INTERVIEW REMINDER (Runs at 5 AM daily)
+const INTERVIEW_CRON_SCHEDULE = "0 5 * * *"; // ✅ Changed back to 5 AM
 
 cron.schedule(INTERVIEW_CRON_SCHEDULE, async () => {
-  console.log("\n🔔 [Interview Cron] Starting interview reminder check...");
-  const startTime = Date.now();
+    logger.info("🔔 [Interview Cron] Starting interview reminder check...");
+    const startTime = Date.now();
 
-  try {
-    // Get tomorrow's date range
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(0, 0, 0, 0);
+    try {
+        // Get tomorrow's date range
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0);
 
-    const dayAfterTomorrow = new Date(tomorrow);
-    dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
+        const dayAfterTomorrow = new Date(tomorrow);
+        dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
 
-    console.log(
-      `[Interview Cron] Checking interviews for: ${tomorrow.toLocaleDateString()}`
-    );
+        logger.info(
+            `[Interview Cron] Checking interviews for: ${tomorrow.toLocaleDateString()}`
+        );
 
-    // Find interviews scheduled for tomorrow
-    const interviews = await Interview.findAll({
-      where: {
-        interviewDate: {
-          [Op.gte]: tomorrow,
-          [Op.lt]: dayAfterTomorrow,
-        },
-        status: "scheduled",
-      },
-      include: [
-        {
-          model: Job,
-          as: "job",
-          include: [
-            {
-              model: User,
-              as: "user",
+        // Find interviews scheduled for tomorrow
+        const interviews = await Interview.findAll({
+            where: {
+                interviewDate: {
+                    [Op.gte]: tomorrow,
+                    [Op.lt]: dayAfterTomorrow,
+                },
+                status: "scheduled",
             },
-          ],
-        },
-      ],
-    });
+            include: [
+                {
+                    model: Job,
+                    as: "job",
+                    include: [
+                        {
+                            model: User,
+                            as: "user",
+                            attributes: ["id", "name", "email", "tier"],
+                        },
+                    ],
+                },
+            ],
+        });
 
-    console.log(`[Interview Cron] Found ${interviews.length} interviews`);
+        logger.info(
+            `[Interview Cron] Found ${interviews.length} interviews`
+        );
 
-    // Queue email for each interview
-    let queuedCount = 0;
-    for (const interview of interviews) {
-      const user = interview.job.user;
-      const job = interview.job;
+        if (interviews.length === 0) {
+            logger.info(
+                "[Interview Cron] ✅ No interviews to remind about."
+            );
+            return;
+        }
 
-      // ✅ Convert to Date object first
-      const interviewDate = new Date(interview.interviewDate);
+        // ✅ Process in batches (non-blocking)
+        const queuedCount = await processBatch(
+            interviews,
+            async (interview) => {
+                const user = interview.job.user;
+                const job = interview.job;
 
-      // Format date nicely
-      const dateStr = interviewDate.toLocaleDateString("en-IN", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
+                const interviewDate = new Date(interview.interviewDate);
+                const timeStr = interview.interviewTime || "Not specified";
 
-      const timeStr = interviewDate.toLocaleTimeString("en-IN", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+                const html = interviewReminderTemplate(
+                    user.name,
+                    job.company,
+                    job.position,
+                    interview.round,
+                    interviewDate,
+                    timeStr
+                );
 
-      // Generate email HTML
-      const html = interviewReminderTemplate(
-        user.name,
-        job.company,
-        job.position,
-        interview.round,
-        interviewDate,
-        timeStr
-      );
+                // Queue email (adds to SQS queue - instant)
+                queueEmail("interview-reminder", {
+                    userId: user.id,
+                    email: user.email,
+                    name: user.name,
+                    subject: `🎯 Interview Tomorrow - ${job.company}`,
+                    html: html,
+                });
 
-      // Add to email queue
-      queueEmail("interview-reminder", {
-        email: user.email,
-        subject: `🎯 Interview Tomorrow - ${job.company}`,
-        html: html,
-      });
+                logger.debug(
+                    `Queued interview reminder: ${user.email} - ${job.company} (${interview.round})`
+                );
+            },
+            "Interview Reminder"
+        );
 
-      queuedCount++;
-      console.log(`  ✅ Queued: ${user.email} - ${job.company} (${job.role})`);
+        const duration = Date.now() - startTime;
+        logger.info(
+            {
+                queuedCount,
+                totalInterviews: interviews.length,
+                duration,
+            },
+            `[Interview Cron] Completed! Queued ${queuedCount}/${interviews.length} emails in ${duration}ms`
+        );
+    } catch (error) {
+        logger.error(
+            {
+                err: error,
+                cronType: "interview-reminder",
+            },
+            "[Interview Cron] Error occurred"
+        );
     }
-
-    const duration = Date.now() - startTime;
-    console.log(
-      `[Interview Cron] ✅ Completed! Queued ${queuedCount} emails in ${duration}ms\n`
-    );
-  } catch (error) {
-    console.error("❌ [Interview Cron] Error:", error.message);
-    console.error(error.stack);
-  }
 });
 
-console.log(` Interview reminder cron scheduled: ${INTERVIEW_CRON_SCHEDULE}`);
+logger.info(
+    `✅ Interview reminder cron scheduled: ${INTERVIEW_CRON_SCHEDULE}`
+);
 
-// 📧 CRON 2: FOLLOW-UP REMINDER
-const FOLLOWUP_CRON_SCHEDULE = "0 5 * * *";
+// 📧 CRON 2: FOLLOW-UP REMINDER (Runs at 5 AM daily)
+const FOLLOWUP_CRON_SCHEDULE = "0 5 * * *"; // ✅ Changed back to 5 AM
 
 cron.schedule(FOLLOWUP_CRON_SCHEDULE, async () => {
-  console.log("\n📧 [Follow-up Cron] Starting follow-up reminder check...");
-  const startTime = Date.now();
-
-  try {
-    // Get today's date
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    console.log(
-      `[Follow-up Cron] Checking follow-ups for: ${today.toLocaleDateString()}`
+    logger.info(
+        "📧 [Follow-up Cron] Starting follow-up reminder check..."
     );
+    const startTime = Date.now();
 
-    // Find jobs with follow-up date = today
-    const jobs = await Job.findAll({
-      where: {
-        followUpDate: {
-          [Op.gte]: today,
-          [Op.lt]: tomorrow,
-        },
-        status: {
-          [Op.in]: [
-            "applied",
-            "screening",
-            "interview-scheduled",
-            "interviewed",
-            "offered",
-            "rejected",
-            "accepted",
-            "withdrawn",
-          ],
-        },
-      },
-      include: [
-        {
-          model: User,
-          as: "user",
-        },
-      ],
-    });
+    try {
+        // Get today's date
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-    console.log(`[Follow-up Cron] Found ${jobs.length} follow-ups`);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Queue email for each follow-up
-    let queuedCount = 0;
-    for (const job of jobs) {
-      const user = job.user;
+        logger.info(
+            `[Follow-up Cron] Checking follow-ups for: ${today.toLocaleDateString()}`
+        );
 
-      // Generate email HTML
-      const html = followUpReminderTemplate(
-        user.name,
-        job.company,
-        job.position,
-        job.status,
-        job.appliedDate,
-      );
+        // Find jobs with follow-up date = today
+        const jobs = await Job.findAll({
+            where: {
+                followUpDate: {
+                    [Op.gte]: today,
+                    [Op.lt]: tomorrow,
+                },
+                status: {
+                    [Op.in]: [
+                        "applied",
+                        "screening",
+                        "interview-scheduled",
+                        "interviewed",
+                    ],
+                },
+            },
+            include: [
+                {
+                    model: User,
+                    as: "user",
+                    attributes: ["id", "name", "email", "tier"],
+                },
+            ],
+        });
 
-      // Add to email queue
-      queueEmail("follow-up-reminder", {
-        email: user.email,
-        subject: `📌 Follow-up Reminder - ${job.company}`,
-        html: html,
-      });
+        logger.info(`[Follow-up Cron] Found ${jobs.length} follow-ups`);
 
-      queuedCount++;
-      console.log(`  ✅ Queued: ${user.email} - ${job.company} (${job.role})`);
+        if (jobs.length === 0) {
+            logger.info(
+                "[Follow-up Cron] ✅ No follow-ups to remind about."
+            );
+            return;
+        }
+
+        // ✅ Process in batches (non-blocking)
+        const queuedCount = await processBatch(
+            jobs,
+            async (job) => {
+                const user = job.user;
+
+                const html = followUpReminderTemplate(
+                    user.name,
+                    job.company,
+                    job.position,
+                    job.status,
+                    job.appliedDate
+                );
+
+                // Queue email (adds to SQS queue - instant)
+                queueEmail("follow-up-reminder", {
+                    userId: user.id,
+                    email: user.email,
+                    name: user.name,
+                    subject: `📌 Follow-up Reminder - ${job.company}`,
+                    html: html,
+                });
+
+                logger.debug(
+                    `Queued follow-up reminder: ${user.email} - ${job.company} (${job.position})`
+                );
+            },
+            "Follow-up Reminder"
+        );
+
+        const duration = Date.now() - startTime;
+        logger.info(
+            {
+                queuedCount,
+                totalJobs: jobs.length,
+                duration,
+            },
+            `[Follow-up Cron] Completed! Queued ${queuedCount}/${jobs.length} emails in ${duration}ms`
+        );
+    } catch (error) {
+        logger.error(
+            {
+                err: error,
+                cronType: "follow-up-reminder",
+            },
+            "[Follow-up Cron] Error occurred"
+        );
     }
-
-    const duration = Date.now() - startTime;
-    console.log(
-      `[Follow-up Cron] ✅ Completed! Queued ${queuedCount} emails in ${duration}ms\n`
-    );
-  } catch (error) {
-    console.error("❌ [Follow-up Cron] Error:", error.message);
-    console.error(error.stack);
-  }
 });
 
-console.log(` Follow-up reminder cron scheduled: ${FOLLOWUP_CRON_SCHEDULE}`);
+logger.info(
+    `✅ Follow-up reminder cron scheduled: ${FOLLOWUP_CRON_SCHEDULE}`
+);
+
+// ✅ Graceful shutdown
+process.on("SIGTERM", async () => {
+    logger.info("🛑 SIGTERM received. Closing cron worker...");
+    try {
+        await sequelize.close();
+        logger.info("✅ Database connections closed.");
+        process.exit(0);
+    } catch (error) {
+        logger.error({ err: error }, "Error closing database connections");
+        process.exit(1);
+    }
+});
+
+process.on("SIGINT", async () => {
+    logger.info("🛑 SIGINT received. Closing cron worker...");
+    try {
+        await sequelize.close();
+        logger.info("✅ Database connections closed.");
+        process.exit(0);
+    } catch (error) {
+        logger.error({ err: error }, "Error closing database connections");
+        process.exit(1);
+    }
+});
+
+logger.info("🎯 Cron Worker ready. Waiting for scheduled tasks...");

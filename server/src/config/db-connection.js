@@ -28,12 +28,59 @@ const sequelize = new Sequelize(
 );
 
 (async () => {
-  try {
-    await sequelize.authenticate();
-    logger.info("📙 Database connected.");
-  } catch (error) {
-     logger.error(error, "Unable to connect to the database");
-  }
+    try {
+        await sequelize.authenticate();
+        logger.info("📙 Database connected successfully.");
+        
+        // Test a simple query
+        await sequelize.query('SELECT 1+1 AS result');
+        logger.info("✅ Database query test passed.");
+    } catch (error) {
+        logger.error("❌ Database connection failed:", error.message);
+        logger.error("Stack:", error.stack);
+        
+        // ✅ Exit process if database fails in production
+        if (process.env.NODE_ENV === "production") {
+            logger.error("🛑 Exiting process due to database connection failure");
+            process.exit(1);
+        } else {
+            logger.warn("⚠️ Development mode - continuing without database");
+        }
+    }
 })();
+
+// ✅ Handle unexpected disconnections during runtime (proper way)
+sequelize.addHook("beforeConnect", async (config) => {
+    logger.debug("Attempting database connection...");
+});
+
+sequelize.addHook("afterConnect", async (connection, config) => {
+    logger.debug("Database connection established.");
+});
+
+// ✅ Graceful shutdown
+process.on("SIGTERM", async () => {
+    logger.info("🛑 SIGTERM received. Closing database connections...");
+    try {
+        await sequelize.close();
+        logger.info("✅ Database connections closed.");
+        process.exit(0);
+    } catch (error) {
+        logger.error("❌ Error closing database connections:", error);
+        process.exit(1);
+    }
+});
+
+process.on("SIGINT", async () => {
+    logger.info("🛑 SIGINT received. Closing database connections...");
+    try {
+        await sequelize.close();
+        logger.info("✅ Database connections closed.");
+        process.exit(0);
+    } catch (error) {
+        logger.error("❌ Error closing database connections:", error);
+        process.exit(1);
+    }
+});
 
 module.exports = sequelize;

@@ -14,11 +14,13 @@ const {
 } = require("../controllers/authController");
 
 const isAuth = require("../middleware/verifyJwt");
+const { authLimiter } = require("../middleware/api-limiter");
 
-authRouter.post("/auth/signup", validateSignUp, validationErrorHandler, SignUp);
-authRouter.post("/auth/signin", validateSignIn, validationErrorHandler, SignIn);
+authRouter.post("/auth/signup", authLimiter,validateSignUp, validationErrorHandler, SignUp);
+authRouter.post("/auth/signin", authLimiter,validateSignIn, validationErrorHandler, SignIn);
 authRouter.post(
   "/auth/refresh",
+  authLimiter,
   validateRefreshToken,
   validationErrorHandler,
   refreshAccessToken,

@@ -192,12 +192,28 @@ const refreshAccessToken = async (req, res, next) => {
   }
 };
 
-const logout = async (req, res) => {
-  const userId = req.payload.id;
-  const user = await User.findByPk(userId);
-  user.refreshToken = null;
-  await user.save();
-  return res.status(200).json({ message: "Logged out successfully" });
+const logout = async (req, res, next) => {
+    try {
+        const userId = req.payload.id;
+        const user = await User.findByPk(userId);
+        
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        user.refreshToken = null;
+        await user.save();
+        
+        return res.status(200).json({
+            success: true,
+            message: "Logged out successfully",
+        });
+    } catch (error) {
+        next(error);
+    }
 };
 
 module.exports = {

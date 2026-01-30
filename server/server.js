@@ -4,12 +4,15 @@ const PORT = process.env.PORT || 4000;
 const express = require("express");
 const app = express();
 const cors = require("cors");
+const helmet = require("helmet");
+const logger = require("./src/logger/logger");
 
-const globalErrorHandler = require("./src/middleware/globalErrorHandler");
-
-// sirf import – yahan db ka config run ho jayega
 const db = require("./src/config/db-connection");
+const globalErrorHandler = require("./src/middleware/globalErrorHandler");
+const loggerMiddleware = require("./src/middleware/loggermiddleware");
+const { apiLimiter } = require("./src/middleware/api-limiter");
 
+// Workers and Jobs
 const { startWorker } = require("./src/jobs/customEmailWorker");
 
 // Routes
@@ -19,7 +22,6 @@ const interviewRouter = require("./src/routes/interviewRouter");
 const jobRouter = require("./src/routes/jobRouter");
 const atsRouter = require("./src/routes/atsRouter");
 const dashboardRouter = require("./src/routes/dashboardRouter");
-const loggerMiddleware = require("./src/middleware/loggermiddleware");
 const paymentRouter = require("./src/routes/paymentRouter");
 const documentRouter = require("./src/routes/documentRouter");
 
@@ -71,7 +73,6 @@ const corsOptions = {
   allowedHeaders: ["Content-Type", "Authorization"],
   maxAge: 86400,
 };
-
 app.use(cors(corsOptions));
 
 // Body parser
@@ -85,23 +86,53 @@ app.get("/", (req, res) => {
 
 // Health check route
 app.get("/health", async (req, res) => {
-  try {
-    await db.authenticate();
-    res.status(200).json({
-      status: "healthy",
-      timestamp: new Date(),
-      uptime: process.uptime(),
-    });
-  } catch (error) {
-    res.status(503).json({ status: "unhealthy" });
-  }
+    try {
+        // Check database connection
+        await sequelize.authenticate();
+
+        res.status(200).json({
+            status: "healthy",
+            timestamp: new Date().toISOString(),
+            uptime: process.uptime(),
+            environment: process.env.NODE_ENV,
+            database: "connected",
+        });
+    } catch (error) {
+        res.status(503).json({
+            status: "unhealthy",
+            timestamp: new Date().toISOString(),
+            error: "Database connection failed",
+        });
+    }
 });
+
 
 // Logger middleware
 app.use(loggerMiddleware);
+// Security headers
+app.use(
+    helmet({
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'self'"],
+                styleSrc: ["'self'", "'unsafe-inline'"],
+                scriptSrc: ["'self'"],
+                imgSrc: ["'self'", "data:", "https:"],
+            },
+        },
+        hsts: {
+            maxAge: 31536000, // 1 year
+            includeSubDomains: true,
+            preload: true,
+        },
+    })
+);
 
 // Routes
 app.use("/api/v1", authRouter);
+
+app.use(apiLimiter);
+
 app.use("/api/v1", profileRouter);
 app.use("/api/v1", jobRouter);
 app.use("/api/v1", interviewRouter);
@@ -129,12 +160,10 @@ app.use(globalErrorHandler);
   try {
     await db.sync({ alter: true });
     app.listen(PORT, () => {
-      // logger.info(`🌎 Server is connected on ${PORT}.`);
-      console.log(`🌎 Server is connected on ${PORT}.`);
+      logger.info(`🌎 Server is connected on ${PORT}.`);
     });
   } catch (error) {
-    // logger.error(error, "Server start failed");
-    console.log(error, "Server start failed");
+    logger.error(error, "Server start failed");
     process.exit(1);
   }
 })();

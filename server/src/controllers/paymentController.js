@@ -181,15 +181,6 @@ const verifyPayment = async (req, res, next) => {
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
       .digest("hex");
 
-    // If already verified, return success (idempotent)
-    if (payment.status === "captured") {
-      await t.commit();
-      return res.json({
-        success: true,
-        message: "Payment already verified",
-      });
-    }
-
     if (generated_signature !== razorpay_signature) {
       // Update payment status to failed
       await payment.update(
@@ -206,6 +197,21 @@ const verifyPayment = async (req, res, next) => {
       return res.status(400).json({
         success: false,
         message: "Payment verification failed",
+      });
+    }
+
+    if (
+      payment.status === "captured" &&
+      payment.paymentId === razorpay_payment_id
+    ) {
+      await t.commit();
+      return res.json({
+        success: true,
+        message: "Payment already verified",
+        payment: {
+          id: payment.id,
+          status: payment.status,
+        },
       });
     }
 

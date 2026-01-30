@@ -144,21 +144,76 @@ async function processQueue() {
 }
 
 // Start Worker - Poll SQS at intervals
-function startWorker() {
-  const pollInterval = setInterval(() => {
-    if (!isProcessing) {
-      processQueue();
+// function startWorker() {
+//   const pollInterval = setInterval(() => {
+//     if (!isProcessing) {
+//       processQueue();
+//     }
+//   }, 10000);
+
+//   console.log("✅ [Worker] Email worker started (polling SQS queue)");
+//   console.log("[Worker] Interval: 10 seconds");
+//   console.log("[Worker] Max messages per poll: 5");
+
+//   process.on("SIGTERM", () => {
+//     console.log("🛑 [Worker] SIGTERM received, stopping email worker...");
+//     clearInterval(pollInterval);
+//   });
+// }
+
+// ✅ FIXED VERSION
+let pollInterval = null;
+let isShuttingDown = false;
+
+async function gracefulShutdown() {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+
+    console.log("🛑 [Worker] Graceful shutdown initiated...");
+
+    // Stop accepting new jobs
+    if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
     }
-  }, 10000);
 
-  console.log("✅ [Worker] Email worker started (polling SQS queue)");
-  console.log("[Worker] Interval: 10 seconds");
-  console.log("[Worker] Max messages per poll: 5");
+    // Wait for current job to finish (max 30 seconds)
+    const maxWaitTime = 30000;
+    const startTime = Date.now();
 
-  process.on("SIGTERM", () => {
-    console.log("🛑 [Worker] SIGTERM received, stopping email worker...");
-    clearInterval(pollInterval);
-  });
+    while (isProcessing && Date.now() - startTime < maxWaitTime) {
+        console.log("[Worker] Waiting for current job to finish...");
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+
+    if (isProcessing) {
+        console.warn("⚠️ [Worker] Force shutting down with job in progress");
+    } else {
+        console.log("✅ [Worker] All jobs completed. Shutting down cleanly.");
+    }
+
+    process.exit(0);
+}
+
+function startWorker() {
+    if (pollInterval) {
+        console.warn("⚠️ [Worker] Worker already running");
+        return;
+    }
+
+    pollInterval = setInterval(() => {
+        if (!isProcessing && !isShuttingDown) {
+            processQueue();
+        }
+    }, 10000);
+
+    console.log("✅ [Worker] Email worker started (polling SQS queue)");
+    console.log("[Worker] Interval: 10 seconds");
+    console.log("[Worker] Max messages per poll: 5");
+
+    // Handle shutdown signals
+    process.on("SIGTERM", gracefulShutdown);
+    process.on("SIGINT", gracefulShutdown);
 }
 
 module.exports = { queueEmail, startWorker };
