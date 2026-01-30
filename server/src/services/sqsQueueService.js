@@ -104,7 +104,7 @@ async function getQueueStatus() {
       }),
     );
 
-    console.log("[SQS] Queue Status:", {
+    logger.info("[SQS] Queue Status:", {
       ApproximateMessages: Attributes.ApproximateNumberOfMessages,
       VisibleMessages: Attributes.ApproximateNumberOfMessagesVisible,
       HiddenMessages: Attributes.ApproximateNumberOfMessagesNotVisible,
@@ -112,7 +112,7 @@ async function getQueueStatus() {
 
     return Attributes;
   } catch (error) {
-    console.error("[SQS] Failed to get queue status:", error.message);
+    logger.error("[SQS] Failed to get queue status:", error.message);
   }
 }
 

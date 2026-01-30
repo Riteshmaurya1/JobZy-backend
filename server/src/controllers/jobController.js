@@ -12,6 +12,7 @@ const {
   generatePDFTemplate,
   generateHTMLResponse,
 } = require("../utils/pdfTemplate");
+const logger = require("../logger/logger");
 
 // POST: Create new job application
 const createJob = async (req, res, next) => {
@@ -81,7 +82,7 @@ const createJob = async (req, res, next) => {
         html,
       });
     } catch (emailError) {
-      console.error("[Create Job] Email queue failed:", emailError.message);
+      logger.error("[Create Job] Email queue failed:", emailError.message);
     }
 
     return res.status(201).json({
@@ -269,9 +270,9 @@ const updateJob = async (req, res, next) => {
           subject: `Job Status Updated: ${job.company}`,
           html,
         });
-        console.log("email is sended 🌎");
+        logger.info("✅ [Update Job] Email queued successfully");
       } catch (emailError) {
-        console.error("[Update Job] Email queue failed:", emailError.message);
+        logger.error("[Update Job] Email queue failed:", emailError.message);
       }
     }
 
@@ -511,7 +512,7 @@ const exportJobsPDF = async (req, res, next) => {
     });
 
     stream.on("error", (err) => {
-      console.error("Stream error:", err);
+      logger.error("Stream error:", err);
       fs.unlink(filePath, () => {});
       res.status(500).json({
         success: false,
@@ -520,7 +521,7 @@ const exportJobsPDF = async (req, res, next) => {
       });
     });
   } catch (error) {
-    console.error("Export error:", error);
+    logger.error("Export error:", error);
     next(error);
   }
 };

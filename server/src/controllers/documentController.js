@@ -4,6 +4,7 @@ const {
   deleteResumeFromS3,
 } = require("../services/s3Service");
 const db = require("../models");
+const logger = require("../logger/logger");
 const { Document } = db;
 
 // POST /api/v1/documents/upload
@@ -31,7 +32,7 @@ const uploadResumeForATS = async (req, res) => {
       uploadSource: "ats_checker",
     });
 
-    console.log(`✅ Document uploaded for ATS: ${document.id}`);
+    logger.info(` Document uploaded for ATS: ${document.id}`);
 
     res.status(201).json({
       success: true,
@@ -44,7 +45,7 @@ const uploadResumeForATS = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("❌ Upload Resume Error:", error);
+    logger.error("❌ Upload Resume Error:", error);
     res.status(500).json({
       success: false,
       message: error.message || "Failed to upload resume",
@@ -85,7 +86,7 @@ const getAllDocuments = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("❌ Get Documents Error:", error);
+    logger.error("❌ Get Documents Error:", error);
     res.status(500).json({
       success: false,
       message: error.message || "Failed to fetch documents",
@@ -124,7 +125,7 @@ const getDocumentDetails = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("❌ Get Document Details Error:", error);
+    logger.error("❌ Get Document Details Error:", error);
     res.status(500).json({
       success: false,
       message: error.message || "Failed to fetch document details",
@@ -161,7 +162,7 @@ const getDocumentDownloadUrl = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("❌ Get Download URL Error:", error);
+    logger.error("❌ Get Download URL Error:", error);
     res.status(500).json({
       success: false,
       message: error.message || "Failed to generate download URL",
@@ -192,14 +193,14 @@ const deleteDocument = async (req, res) => {
     // Delete from database
     await document.destroy();
 
-    console.log(`✅ Document deleted: ${documentId}`);
+    logger.info(`Document deleted: ${documentId}`);
 
     res.status(200).json({
       success: true,
       message: "Document deleted successfully",
     });
   } catch (error) {
-    console.error("❌ Delete Document Error:", error);
+    logger.error("❌ Delete Document Error:", error);
     res.status(500).json({
       success: false,
       message: error.message || "Failed to delete document",
@@ -238,7 +239,7 @@ const updateAtsScore = async (req, res) => {
     if (keywords) document.keywords = keywords;
     await document.save();
 
-    console.log(`✅ ATS score updated: ${documentId} - Score: ${atsScore}`);
+    logger.info(` ATS score updated: ${documentId} - Score: ${atsScore}`);
 
     res.status(200).json({
       success: true,
@@ -251,7 +252,7 @@ const updateAtsScore = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("❌ Update ATS Score Error:", error);
+    logger.error("❌ Update ATS Score Error:", error);
     res.status(500).json({
       success: false,
       message: error.message || "Failed to update ATS score",
@@ -292,7 +293,7 @@ const getAtsStatistics = async (req, res) => {
       data: stats,
     });
   } catch (error) {
-    console.error("❌ Get ATS Statistics Error:", error);
+    logger.error("❌ Get ATS Statistics Error:", error);
     res.status(500).json({
       success: false,
       message: error.message || "Failed to fetch ATS statistics",

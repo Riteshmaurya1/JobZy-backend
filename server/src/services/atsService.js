@@ -1,10 +1,11 @@
 const { generateWithGemini } = require("../config/geminiAI");
+const logger = require("../logger/logger");
 
 const analyzeResumeWithAI = async (resumeText, jobRole) => {
   try {
-    console.log("🤖 [ATS Service] Starting AI analysis...");
-    console.log("🤖 [ATS Service] Job Role:", jobRole);
-    console.log(
+    logger.log("🤖 [ATS Service] Starting AI analysis...");
+    logger.info("🤖 [ATS Service] Job Role:", jobRole);
+    logger.info(
       "🤖 [ATS Service] Resume Length:",
       resumeText.length,
       "characters",
@@ -55,11 +56,11 @@ Scoring Rubric (be strict):
 - Formatting (0-100): ATS-compatible (no tables/images/headers), clear hierarchy, consistent formatting, proper use of keywords
 
 Remember: Score critically. A score of 80+ means the resume is genuinely strong and competitive.`;
-    // ✅ Use generateWithGemini instead of model.generateContent
+    // Use generateWithGemini instead of model.generateContent
     const aiResponse = await generateWithGemini(prompt);
 
-    console.log("🤖 [ATS Service] ✅ AI Response received");
-    console.log("🤖 [ATS Service] Response length:", aiResponse.length);
+    logger.info("🤖 [ATS Service] - AI Response received");
+    logger.info("🤖 [ATS Service] Response length:", aiResponse.length);
 
     // Parse JSON response (handle markdown code blocks)
     let jsonText = aiResponse.trim();
@@ -70,8 +71,8 @@ Remember: Score critically. A score of 80+ means the resume is genuinely strong 
     // Extract JSON object
     const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.error("🤖 [ATS Service] ❌ Invalid JSON response");
-      console.error(
+      logger.error("🤖 [ATS Service] ❌ Invalid JSON response");
+      logger.error(
         "Raw response (first 500 chars):",
         aiResponse.substring(0, 500),
       );
@@ -79,14 +80,14 @@ Remember: Score critically. A score of 80+ means the resume is genuinely strong 
     }
 
     const analysis = JSON.parse(jsonMatch[0]);
-    console.log(
-      "🤖 [ATS Service] ✅ Parsed successfully. ATS Score:",
+    logger.info(
+      "🤖 [ATS Service] - Parsed successfully. ATS Score:",
       analysis.atsScore,
     );
 
     return analysis;
   } catch (error) {
-    console.error("[ATS Service] ❌ Error:", error.message);
+    logger.error("[ATS Service] - Error:", error.message);
 
     // Provide specific error messages
     if (error.message.includes("API key")) {
@@ -170,7 +171,7 @@ const getKeywordSuggestions = async (
   jobDescription = "",
 ) => {
   try {
-    console.log("🤖 [Keyword Suggestions] Starting analysis...");
+    logger.info("[Keyword Suggestions] Starting analysis...");
 
     const prompt = `You are an ATS keyword expert. Analyze the resume and suggest missing keywords for a ${jobRole} position.
 
@@ -219,7 +220,7 @@ ${jobDescription ? "6. Keywords from the provided job description" : ""}`;
     // ✅ Use generateWithGemini
     const aiResponse = await generateWithGemini(prompt);
 
-    console.log("🤖 [Keyword Suggestions] ✅ Response received");
+    logger.info("🤖 [Keyword Suggestions] - AI Response received");
 
     // Parse JSON response
     let jsonText = aiResponse.trim();
@@ -227,16 +228,16 @@ ${jobDescription ? "6. Keywords from the provided job description" : ""}`;
 
     const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.error("🤖 [Keyword Suggestions] ❌ Invalid JSON");
+      logger.error("🤖 [Keyword Suggestions] - Invalid JSON");
       throw new Error("Invalid AI response format");
     }
 
     const suggestions = JSON.parse(jsonMatch[0]);
-    console.log("🤖 [Keyword Suggestions] ✅ Parsed successfully");
+    logger.info("🤖 [Keyword Suggestions] - Parsed successfully");
 
     return suggestions;
   } catch (error) {
-    console.error("[ATS Service] Keyword Suggestions Error:", error.message);
+    logger.error("[ATS Service] Keyword Suggestions Error:", error.message);
     throw new Error(`Failed to generate keyword suggestions: ${error.message}`);
   }
 };

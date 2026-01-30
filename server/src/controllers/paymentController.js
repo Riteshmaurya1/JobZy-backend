@@ -6,6 +6,7 @@ const sequelize = require("../config/db-connection");
 const { queueEmail } = require("../jobs/customEmailWorker");
 const { paymentConfirmationTemplate } = require("../utils/emailTemplates");
 const { log } = require("console");
+const logger = require("../logger/logger");
 
 // Initialize Razorpay instance
 const razorpay = new Razorpay({
@@ -133,7 +134,8 @@ const createOrder = async (req, res, next) => {
     });
   } catch (error) {
     await t.rollback();
-    console.error("[Create Order Error]:", error);
+    logger
+    logger.error("[Create Order Error]:", error);
     next(error);
   }
 };
@@ -260,11 +262,11 @@ const verifyPayment = async (req, res, next) => {
         subject: `💸 Payment Successful - Welcome to ${planDisplayName}!`,
         html,
       });
-      console.log(
-        `✅ [Payment Email] Queued for ${user.email} - ${planDisplayName}`,
+      logger.info(
+        ` [Payment Email] Queued for ${user.email} - ${planDisplayName}`,
       );
     } catch (emailError) {
-      console.error("⚠️ [Payment Email Error]:", emailError.message);
+      logger.error("⚠️ [Payment Email Error]:", emailError.message);
     }
 
     return res.status(200).json({
@@ -287,7 +289,7 @@ const verifyPayment = async (req, res, next) => {
     });
   } catch (error) {
     await t.rollback();
-    console.error("[Verify Payment Error]:", error);
+    logger.error("[Verify Payment Error]:", error);
     next(error);
   }
 };
@@ -348,7 +350,7 @@ const handlePaymentFailure = async (req, res, next) => {
     });
   } catch (error) {
     await t.rollback();
-    console.error("[Handle Payment Failure Error]:", error);
+    logger.error("[Handle Payment Failure Error]:", error);
     next(error);
   }
 };
@@ -529,7 +531,7 @@ const initiateRefund = async (req, res, next) => {
     });
   } catch (error) {
     await t.rollback();
-    console.error("[Refund Error]:", error);
+    logger.error("[Refund Error]:", error);
     next(error);
   }
 };
@@ -604,7 +606,7 @@ const handleWebhook = async (req, res, next) => {
         break;
 
       default:
-        console.log(`Unhandled webhook event: ${event}`);
+        logger.info(`Unhandled webhook event: ${event}`);
     }
 
     await t.commit();
@@ -612,7 +614,7 @@ const handleWebhook = async (req, res, next) => {
     return res.status(200).json({ success: true });
   } catch (error) {
     await t.rollback();
-    console.error("[Webhook Error]:", error);
+    logger.error("[Webhook Error]:", error);
     next(error);
   }
 };

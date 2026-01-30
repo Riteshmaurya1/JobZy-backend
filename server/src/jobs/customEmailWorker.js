@@ -16,6 +16,7 @@ const {
   receiveEmailsFromSQS,
   deleteEmailFromSQS,
 } = require("../services/sqsQueueService");
+const logger = require("../logger/logger");
 
 let isProcessing = false;
 
@@ -23,9 +24,9 @@ let isProcessing = false;
 async function queueEmail(type, data) {
   try {
     await queueEmailToSQS(type, data);
-    console.log(`✅ [Worker] Queued to SQS: ${type}`);
+    logger.log(`✅ [Worker] Queued to SQS: ${type}`);
   } catch (error) {
-    console.error(`❌ [Worker] Failed to queue:`, error.message);
+    logger.error(`❌ [Worker] Failed to queue:`, error.message);
   }
 }
 
@@ -44,18 +45,18 @@ async function processQueue() {
       try {
         const job = JSON.parse(message.Body);
 
-        console.log(`📧 [Worker] Processing: ${job.type} → ${job.data.email}`);
+        logger.info(`📧 [Worker] Processing: ${job.type} → ${job.data.email}`);
 
         // Check email quota if userId is present
         if (job.data.userId) {
           const quotaCheck = await checkEmailQuota(job.data.userId);
 
           if (!quotaCheck.allowed) {
-            console.log(
-              `⚠️ [Worker] Quota exhausted for user ${job.data.userId}`,
+            logger.warn(
+              ` [Worker] Quota exhausted for user ${job.data.userId}`,
             );
-            console.log(`[Worker] Quota:`, quotaCheck.quota);
-            console.log(`[Worker] Message will retry after visibility timeout`);
+            logger.info(`[Worker] Quota:`, quotaCheck.quota);
+            logger.info(`[Worker] Message will retry after visibility timeout`);
             continue;
           }
         }
@@ -125,19 +126,18 @@ async function processQueue() {
         // Delete email from SQS
         await deleteEmailFromSQS(message.ReceiptHandle);
 
-        console.log(
-          `✅ [Worker] SUCCESS: ${job.type} sent to ${job.data.email}`,
+        logger.info(
+          `[Worker] SUCCESS: ${job.type} sent to ${job.data.email}`,
         );
       } catch (error) {
-        console.error(`❌ [Worker] FAILED to process message:`, error.message);
-
-        console.log(
+        logger.error(` [Worker] FAILED to process message:`, error.message);
+        logger.info(
           `[Worker] Message will reappear in queue after visibility timeout`,
         );
       }
     }
   } catch (error) {
-    console.error(`❌ [Worker] Queue processing error:`, error.message);
+    logger.error(`❌ [Worker] Queue processing error:`, error.message);
   } finally {
     isProcessing = false;
   }
@@ -151,7 +151,7 @@ async function gracefulShutdown() {
     if (isShuttingDown) return;
     isShuttingDown = true;
 
-    console.log("🛑 [Worker] Graceful shutdown initiated...");
+    logger.info("🛑 [Worker] Graceful shutdown initiated...");
 
     // Stop accepting new jobs
     if (pollInterval) {
@@ -164,14 +164,14 @@ async function gracefulShutdown() {
     const startTime = Date.now();
 
     while (isProcessing && Date.now() - startTime < maxWaitTime) {
-        console.log("[Worker] Waiting for current job to finish...");
+        logger.info("[Worker] Waiting for current job to finish...");
         await new Promise((resolve) => setTimeout(resolve, 1000));
     }
 
     if (isProcessing) {
-        console.warn("⚠️ [Worker] Force shutting down with job in progress");
+        logger.warn("⚠️ [Worker] Force shutting down with job in progress");
     } else {
-        console.log("✅ [Worker] All jobs completed. Shutting down cleanly.");
+        logger.info("✅ [Worker] All jobs completed. Shutting down cleanly.");
     }
 
     process.exit(0);
@@ -189,9 +189,9 @@ function startWorker() {
         }
     }, 10000);
 
-    console.log("✅ [Worker] Email worker started (polling SQS queue)");
-    console.log("[Worker] Interval: 10 seconds");
-    console.log("[Worker] Max messages per poll: 5");
+    logger.info("✅ [Worker] Email worker started (polling SQS queue)");
+    logger.info("[Worker] Interval: 10 seconds");
+    logger.info("[Worker] Max messages per poll: 5");
 
     // Handle shutdown signals
     process.on("SIGTERM", gracefulShutdown);

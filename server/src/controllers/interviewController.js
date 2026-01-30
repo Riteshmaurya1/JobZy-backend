@@ -5,14 +5,15 @@ const {
   interviewScheduledTemplate,
   followUpReminderTemplate,
 } = require("../utils/emailTemplates");
+const logger = require("../logger/logger");
 
 // POST: Schedule interview for a job
 const scheduleInterview = async (req, res, next) => {
   try {
     const userId = req.payload.id;
     const { jobId } = req.params;
-    console.log("userId from token:", req.payload.id);
-    console.log("jobId from params:", jobId);
+    logger.info("userId from token:", req.payload.id);
+    logger.info("jobId from params:", jobId);
     const {
       round,
       interviewDate,
@@ -83,7 +84,7 @@ const scheduleInterview = async (req, res, next) => {
         html,
       });
     } catch (emailError) {
-      console.error(
+      logger.error(
         "[Schedule Interview] Email queue failed:",
         emailError.message
       );
@@ -251,7 +252,7 @@ const updateInterview = async (req, res, next) => {
           html,
         });
       } catch (emailError) {
-        console.error(
+        logger.error(
           "[Update Interview] Email queue failed:",
           emailError.message
         );

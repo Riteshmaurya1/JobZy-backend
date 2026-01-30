@@ -62,7 +62,7 @@ const uploadResumeToS3 = async (file, userId) => {
 
 const generateSignedDownloadUrl = async (s3Key, expiresIn = 3600) => {
   try {
-    console.log(`🔗 [S3] Generating download URL for: ${s3Key}`);
+    logger.info(` [S3] Generating download URL for: ${s3Key}`);
 
     const command = new GetObjectCommand({
       Bucket: BUCKET_NAME,
@@ -82,7 +82,7 @@ const generateSignedDownloadUrl = async (s3Key, expiresIn = 3600) => {
 
 const deleteResumeFromS3 = async (s3Key) => {
   try {
-    console.log(`🗑️ [S3] Deleting resume: ${s3Key}`);
+    logger.info(`🗑️ [S3] Deleting resume: ${s3Key}`);
 
     const command = new DeleteObjectCommand({
       Bucket: BUCKET_NAME,

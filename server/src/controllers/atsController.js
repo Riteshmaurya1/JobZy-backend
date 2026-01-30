@@ -47,7 +47,6 @@ const checkATSScore = async (req, res, next) => {
   try {
     const userId = req.payload.id;
     const { jobRole } = req.body;
-    console.log(jobRole);
 
     // Validation
     if (!req.file) {
@@ -125,7 +124,7 @@ const checkATSScore = async (req, res, next) => {
       try {
         await fs.unlink(filePath);
       } catch (unlinkError) {
-        console.error("[ATS] File cleanup error:", unlinkError.message);
+        logger.error("[ATS] File cleanup error:", unlinkError.message);
       }
     }
     next(error);
@@ -229,7 +228,7 @@ const getKeywordSuggestionsController = async (req, res, next) => {
       try {
         await fs.unlink(filePath);
       } catch (unlinkError) {
-        console.error("[ATS] File cleanup error:", unlinkError.message);
+        logger.error("[ATS] File cleanup error:", unlinkError.message);
       }
     }
     next(error);
@@ -243,7 +242,7 @@ const getKeywordSuggestionsController = async (req, res, next) => {
  */
 const quickKeywordMatch = async (req, res, next) => {
   try {
-    console.log("🔍 [Quick Match] Starting keyword comparison...");
+    logger.info("🔍 [Quick Match] Starting keyword comparison...");
 
     const { resumeText, jobDescription } = req.body;
 
@@ -262,13 +261,13 @@ const quickKeywordMatch = async (req, res, next) => {
       });
     }
 
-    console.log("📥 Resume text length:", resumeText.length);
-    console.log("📥 Job description length:", jobDescription.length);
+    logger.info("📥 Resume text length:", resumeText.length);
+    logger.info("📥 Job description length:", jobDescription.length);
 
     // Compare keywords
     const comparison = compareWithJobDescription(resumeText, jobDescription);
 
-    console.log("✅ Match percentage:", comparison.matchPercentage);
+    logger.info("✅ Match percentage:", comparison.matchPercentage);
 
     // Generate recommendation based on match percentage
     let recommendation = "";
@@ -307,7 +306,7 @@ const quickKeywordMatch = async (req, res, next) => {
       },
     });
   } catch (error) {
-    console.error("[Quick Match] Error:", error.message);
+    logger.error("[Quick Match] Error:", error.message);
     next(error);
   }
 };

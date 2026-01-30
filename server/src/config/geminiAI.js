@@ -1,4 +1,5 @@
 const { GoogleGenAI } = require("@google/genai");
+const logger = require("../logger/logger");
 
 // Validate API key
 if (!process.env.GEMINI_API_KEY) {
@@ -17,18 +18,18 @@ const ai = new GoogleGenAI({
  */
 async function generateWithGemini(prompt) {
   try {
-    console.log("🤖 [Gemini] Sending request to gemini-2.5-flash...");
+    logger.info("🤖 [Gemini] Sending request to gemini-2.5-flash...");
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash", // ✅ FREE & FAST
       contents: prompt,
     });
 
-    console.log("🤖 [Gemini] ✅ Response received");
+    logger.info("🤖 [Gemini] ✅ Response received");
 
     return response.text;
   } catch (error) {
-    console.error("🤖 [Gemini] ❌ Error:", error.message);
+    logger.error("🤖 [Gemini] ❌ Error:", error.message);
     throw new Error(`Gemini API error: ${error.message}`);
   }
 }
