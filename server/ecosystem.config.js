@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: 'jobzy-backend',
-      script: './src/server.js', 
+      script: './server.js', 
       
       // ✅ CLUSTER MODE (use all CPU cores)
       instances: 'max', // or specify number: 2, 4, etc.
