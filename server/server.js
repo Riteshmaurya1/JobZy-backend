@@ -88,7 +88,7 @@ app.get("/", (req, res) => {
 app.get("/health", async (req, res) => {
   try {
     // Check database connection
-    await sequelize.authenticate();
+    await db.authenticate();
 
     res.status(200).json({
       status: "healthy",
