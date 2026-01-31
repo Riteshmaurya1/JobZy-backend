@@ -3,7 +3,7 @@ const logger = require("../logger/logger");
 
 const analyzeResumeWithAI = async (resumeText, jobRole) => {
   try {
-    logger.log("🤖 [ATS Service] Starting AI analysis...");
+    logger.info("🤖 [ATS Service] Starting AI analysis...");
     logger.info("🤖 [ATS Service] Job Role:", jobRole);
     logger.info(
       "🤖 [ATS Service] Resume Length:",
