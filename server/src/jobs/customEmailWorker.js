@@ -24,9 +24,13 @@ let isProcessing = false;
 async function queueEmail(type, data) {
   try {
     await queueEmailToSQS(type, data);
-    logger.log(`✅ [Worker] Queued to SQS: ${type}`);
+    logger.info(`✅ [Worker] Queued to SQS: ${type}`);
   } catch (error) {
-    logger.error(`❌ [Worker] Failed to queue:`, error.message);
+    logger.error("❌ [Worker] Failed to queue:", {
+      type,
+      email: data?.email,
+      error, // full error, not just message
+    });
   }
 }
 
@@ -80,15 +84,14 @@ async function processQueue() {
             html,
             true,
           );
-        } else if (job.type === "payment-confirmation"){
-           await sendEmail(
+        } else if (job.type === "payment-confirmation") {
+          await sendEmail(
             job.data.email,
             job.data.subject,
             job.data.html,
             true,
           );
-        }
-         else if (job.type === "interview-reminder") {
+        } else if (job.type === "interview-reminder") {
           await sendEmail(
             job.data.email,
             job.data.subject,
@@ -126,9 +129,7 @@ async function processQueue() {
         // Delete email from SQS
         await deleteEmailFromSQS(message.ReceiptHandle);
 
-        logger.info(
-          `[Worker] SUCCESS: ${job.type} sent to ${job.data.email}`,
-        );
+        logger.info(`[Worker] SUCCESS: ${job.type} sent to ${job.data.email}`);
       } catch (error) {
         logger.error(` [Worker] FAILED to process message:`, error.message);
         logger.info(
@@ -148,54 +149,54 @@ let pollInterval = null;
 let isShuttingDown = false;
 
 async function gracefulShutdown() {
-    if (isShuttingDown) return;
-    isShuttingDown = true;
+  if (isShuttingDown) return;
+  isShuttingDown = true;
 
-    logger.info("🛑 [Worker] Graceful shutdown initiated...");
+  logger.info("🛑 [Worker] Graceful shutdown initiated...");
 
-    // Stop accepting new jobs
-    if (pollInterval) {
-        clearInterval(pollInterval);
-        pollInterval = null;
-    }
+  // Stop accepting new jobs
+  if (pollInterval) {
+    clearInterval(pollInterval);
+    pollInterval = null;
+  }
 
-    // Wait for current job to finish (max 30 seconds)
-    const maxWaitTime = 30000;
-    const startTime = Date.now();
+  // Wait for current job to finish (max 30 seconds)
+  const maxWaitTime = 30000;
+  const startTime = Date.now();
 
-    while (isProcessing && Date.now() - startTime < maxWaitTime) {
-        logger.info("[Worker] Waiting for current job to finish...");
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-    }
+  while (isProcessing && Date.now() - startTime < maxWaitTime) {
+    logger.info("[Worker] Waiting for current job to finish...");
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
 
-    if (isProcessing) {
-        logger.warn("⚠️ [Worker] Force shutting down with job in progress");
-    } else {
-        logger.info("✅ [Worker] All jobs completed. Shutting down cleanly.");
-    }
+  if (isProcessing) {
+    logger.warn("⚠️ [Worker] Force shutting down with job in progress");
+  } else {
+    logger.info("✅ [Worker] All jobs completed. Shutting down cleanly.");
+  }
 
-    process.exit(0);
+  process.exit(0);
 }
 
 function startWorker() {
-    if (pollInterval) {
-        console.warn("⚠️ [Worker] Worker already running");
-        return;
+  if (pollInterval) {
+    console.warn("⚠️ [Worker] Worker already running");
+    return;
+  }
+
+  pollInterval = setInterval(() => {
+    if (!isProcessing && !isShuttingDown) {
+      processQueue();
     }
+  }, 10000);
 
-    pollInterval = setInterval(() => {
-        if (!isProcessing && !isShuttingDown) {
-            processQueue();
-        }
-    }, 10000);
+  logger.info("✅ [Worker] Email worker started (polling SQS queue)");
+  logger.info("[Worker] Interval: 10 seconds");
+  logger.info("[Worker] Max messages per poll: 5");
 
-    logger.info("✅ [Worker] Email worker started (polling SQS queue)");
-    logger.info("[Worker] Interval: 10 seconds");
-    logger.info("[Worker] Max messages per poll: 5");
-
-    // Handle shutdown signals
-    process.on("SIGTERM", gracefulShutdown);
-    process.on("SIGINT", gracefulShutdown);
+  // Handle shutdown signals
+  process.on("SIGTERM", gracefulShutdown);
+  process.on("SIGINT", gracefulShutdown);
 }
 
 module.exports = { queueEmail, startWorker };

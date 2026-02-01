@@ -157,7 +157,12 @@ app.use(globalErrorHandler);
 
 (async () => {
   try {
-    await db.sync({ alter: true });
+    if (process.env.NODE_ENV === "development") {
+      await db.sync({ alter: true }); 
+    } else {
+      await db.sync();
+    }
+
     app.listen(PORT, () => {
       logger.info(`🌎 Server is connected on ${PORT}.`);
     });

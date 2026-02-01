@@ -7,10 +7,10 @@ const getDeviceInfo = (req) => {
     os.platform() === "win32"
       ? "Windows"
       : os.platform() === "darwin"
-      ? "macOS"
-      : os.platform() === "linux"
-      ? "Linux"
-      : "Unknown OS";
+        ? "macOS"
+        : os.platform() === "linux"
+          ? "Linux"
+          : "Unknown OS";
 
   return `${platform} · ${userAgent}`;
 };
@@ -20,7 +20,7 @@ const getLocationFromIP = async (ip) => {
     return "Localhost / Unknown location";
   }
 
-  // No DB, no API — safe fallback
+  // No DB, no external API — simple fallback
   return `IP: ${ip}`;
 };
 

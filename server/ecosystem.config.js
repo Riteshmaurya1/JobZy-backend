@@ -39,22 +39,6 @@ module.exports = {
       // ✅ AUTORESTART
       autorestart: true,
     },
-    
-    // ✅ SEPARATE WORKER FOR EMAIL PROCESSING
-    {
-      name: 'jobzy-email-worker',
-      script: './src/jobs/customEmailWorker.js',
-      instances: 1,
-      exec_mode: 'fork', // Single instance for worker
-      env: {
-        NODE_ENV: 'production',
-      },
-      error_file: './logs/worker-error.log',
-      out_file: './logs/worker-out.log',
-      max_memory_restart: '300M',
-      autorestart: true,
-    },
-    
     // ✅ SEPARATE WORKER FOR CRON JOBS
     {
       name: 'jobzy-cron-worker',
