@@ -4,42 +4,39 @@ module.exports = {
       name: 'jobzy-backend',
       script: './server.js', 
       
-      // ✅ CLUSTER MODE (use all CPU cores)
+      // CLUSTER MODE (use all CPU cores)
       instances: 'max', // or specify number: 2, 4, etc.
       exec_mode: 'cluster',
       
-      // ✅ ENVIRONMENT
+      // ENVIRONMENT
       env: {
         NODE_ENV: 'production',
         PORT: 3000,
       },
       
-      // ✅ LOGGING
+      // LOGGING
       error_file: './logs/error.log',
       out_file: './logs/out.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       merge_logs: true,
       
-      // ✅ RESTART CONFIGURATION
-      max_memory_restart: '500M', // Restart if memory exceeds 500MB
-      max_restarts: 10,           // Max restarts within 1 minute
-      min_uptime: '10s',          // Min uptime before considered stable
-      
-      // ✅ AUTO-RESTART ON FILE CHANGES (development only)
+      // RESTART CONFIGURATION
+      max_memory_restart: '500M', 
+      max_restarts: 10,           
+      min_uptime: '10s',
       watch: false,
       
-      // ✅ GRACEFUL SHUTDOWN
+      // GRACEFUL SHUTDOWN
       kill_timeout: 5000, // Wait 5s for graceful shutdown
       wait_ready: true,
       listen_timeout: 10000,
       
-      // ✅ CRON RESTART (optional - restart daily at 4 AM)
+      // CRON RESTART 
       cron_restart: '0 4 * * *',
-      
-      // ✅ AUTORESTART
       autorestart: true,
     },
-    // ✅ SEPARATE WORKER FOR CRON JOBS
+
+    // SEPARATE WORKER FOR CRON JOBS
     {
       name: 'jobzy-cron-worker',
       script: './src/cron/emailReminders.js',
