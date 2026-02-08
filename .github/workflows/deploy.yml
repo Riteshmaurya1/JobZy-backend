@@ -67,15 +67,15 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
         run: |
           # Create SSH key file
-          echo "$SSH_PRIVATE_KEY" > private_key.pem
-          chmod 600 private_key.pem
+          echo "$SSH_PRIVATE_KEY" > jobzybackend.pem
+          chmod 600 jobzybackend.pem
 
           # Copy deployment package to EC2
-          scp -i private_key.pem -o StrictHostKeyChecking=no \
+          scp -i jobzybackend.pem -o StrictHostKeyChecking=no \
             deploy.tar.gz ${EC2_USERNAME}@${EC2_HOST}:/tmp/
 
           # SSH into EC2 and deploy
-          ssh -i private_key.pem -o StrictHostKeyChecking=no \
+          ssh -i jobzybackend.pem -o StrictHostKeyChecking=no \
             ${EC2_USERNAME}@${EC2_HOST} << 'EOF'
             
             # Navigate to app directory
@@ -87,9 +87,9 @@ jobs:
 
             # Backup current version
             if [ -f "server.js" ]; then
-              timestamp=\$(date +%Y%m%d_%H%M%S)
+              timestamp=$(date +%Y%m%d_%H%M%S)
               mkdir -p backups
-              tar -czf backups/backup_\${timestamp}.tar.gz server.js package.json ecosystem.config.js src .env 2>/dev/null || true
+              tar -czf backups/backup_${timestamp}.tar.gz server.js package.json ecosystem.config.js src .env 2>/dev/null || true
               # Keep only last 5 backups
               ls -t backups/backup_*.tar.gz 2>/dev/null | tail -n +6 | xargs -r rm
             fi
@@ -152,7 +152,7 @@ jobs:
           EOF
 
           # Cleanup
-          rm private_key.pem
+          rm jobzybackend.pem
 
       - name: Verify deployment
         env:
@@ -164,23 +164,23 @@ jobs:
           # Check if app responds via nginx (try multiple times)
           for i in {1..3}; do
             echo "Attempt $i of 3..."
-            response=\$(curl -s -o /dev/null -w "%{http_code}" http://\${EC2_HOST}/health 2>/dev/null || echo "000")
+            response=$(curl -s -o /dev/null -w "%{http_code}" http://${EC2_HOST}/health 2>/dev/null || echo "000")
             
-            if [ "\$response" = "200" ]; then
-              echo "Deployment successful! App is responding with status: \$response"
+            if [ "$response" = "200" ]; then
+              echo "Deployment successful! App is responding with status: $response"
               exit 0
             fi
             
             # Try root endpoint if /health doesn't exist
-            if [ "\$response" = "404" ]; then
-              response=\$(curl -s -o /dev/null -w "%{http_code}" http://\${EC2_HOST}/ 2>/dev/null || echo "000")
-              if [ "\$response" = "200" ] || [ "\$response" = "301" ] || [ "\$response" = "302" ]; then
-                echo "Deployment successful! App is responding with status: \$response"
+            if [ "$response" = "404" ]; then
+              response=$(curl -s -o /dev/null -w "%{http_code}" http://${EC2_HOST}/ 2>/dev/null || echo "000")
+              if [ "$response" = "200" ] || [ "$response" = "301" ] || [ "$response" = "302" ]; then
+                echo "Deployment successful! App is responding with status: $response"
                 exit 0
               fi
             fi
             
-            echo "Got response: \$response, waiting 5 seconds..."
+            echo "Got response: $response, waiting 5 seconds..."
             sleep 5
           done
 
@@ -197,10 +197,10 @@ jobs:
         run: |
           echo "Attempting to rollback to previous version..."
 
-          echo "$SSH_PRIVATE_KEY" > private_key.pem
-          chmod 600 private_key.pem
+          echo "$SSH_PRIVATE_KEY" > jobzybackend.pem
+          chmod 600 jobzybackend.pem
 
-          ssh -i private_key.pem -o StrictHostKeyChecking=no \
+          ssh -i jobzybackend.pem -o StrictHostKeyChecking=no \
             ${EC2_USERNAME}@${EC2_HOST} << 'EOF'
             
             cd /home/ubuntu/JobZy-backend/server
@@ -209,11 +209,11 @@ jobs:
             sudo chown -R $USER:$USER /home/ubuntu/JobZy-backend
 
             # Find latest backup
-            latest_backup=\$(ls -t backups/backup_*.tar.gz 2>/dev/null | head -1)
+            latest_backup=$(ls -t backups/backup_*.tar.gz 2>/dev/null | head -1)
 
-            if [ -n "\$latest_backup" ]; then
-              echo "Found backup: \$latest_backup"
-              tar -xzf "\$latest_backup" -C /home/ubuntu/JobZy-backend/server
+            if [ -n "$latest_backup" ]; then
+              echo "Found backup: $latest_backup"
+              tar -xzf "$latest_backup" -C /home/ubuntu/JobZy-backend/server
               npm ci --omit=dev
               sudo pm2 reload ecosystem.config.js --update-env
               echo "Rolled back to previous version"
@@ -222,4 +222,4 @@ jobs:
             fi
           EOF
 
-          rm private_key.pem
+          rm jobzybackend.pem
