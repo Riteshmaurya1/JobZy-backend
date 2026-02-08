@@ -1,5 +1,4 @@
 //  STANDALONE CRON WORKER (Batch Processing + Non-blocking)
-require("dotenv").config();
 const cron = require("node-cron");
 const { Op } = require("sequelize");
 const sequelize = require("../config/db-connection");
@@ -14,7 +13,6 @@ const { queueEmail } = require("../jobs/customEmailWorker");
 const logger = require("../logger/logger");
 
 logger.info("🚀 Email Reminder Cron Worker Started");
-logger.info(`Environment: ${process.env.NODE_ENV}`);
 
 // ✅ BATCH PROCESSING - Process emails in chunks
 const BATCH_SIZE = 10; // Process 10 emails at a time

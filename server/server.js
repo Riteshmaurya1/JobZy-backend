@@ -1,8 +1,9 @@
 require("dotenv").config();
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 3000;
 
 const express = require("express");
 const app = express();
+app.set('trust proxy', 1);
 const cors = require("cors");
 const helmet = require("helmet");
 const logger = require("./src/logger/logger");
