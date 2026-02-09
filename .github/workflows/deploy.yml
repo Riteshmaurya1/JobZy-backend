@@ -3,8 +3,8 @@ name: Deploy JobZy Backend to EC2
 on:
   push:
     branches: [main]
-  workflow_dispatch: # manual trigger
-  
+  workflow_dispatch:
+
 permissions:
   contents: read
 
@@ -32,11 +32,6 @@ jobs:
           cd server
           npm ci
 
-      - name: Verify installation
-        run: |
-          cd server
-          npm list --depth=0
-
       - name: Create deployment package
         run: |
           mkdir -p deploy
@@ -44,7 +39,6 @@ jobs:
           cp server/package*.json deploy/
           cp server/ecosystem.config.js deploy/
           cp server/server.js deploy/
-          # Copy .env.example if exists
           [ -f server/.env.example ] && cp server/.env.example deploy/ || echo "No .env.example found"
           tar -czf deploy.tar.gz -C deploy .
 
@@ -66,106 +60,103 @@ jobs:
         with:
           name: deployment-package
 
-     - name: Test SSH Connection
-  env:
-    EC2_HOST: ${{ secrets.EC2_HOST }}
-    EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
-    SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-  run: |
-    echo "$SSH_PRIVATE_KEY" > jobzybackend.pem
-    chmod 600 jobzybackend.pem
-
-    ssh -i jobzybackend.pem -o StrictHostKeyChecking=no \
-      ${EC2_USERNAME}@${EC2_HOST} "echo 'SSH WORKS FROM GITHUB ACTIONS'"
-
-    rm jobzybackend.pem
-
-
-      - name: Verify deployment
-        env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
+      # ✅ FIX #1 — Proper SSH key handling (prevents “Permission denied (publickey)”)
+      - name: Setup SSH Key
         run: |
-          echo "Verifying deployment..."
-          sleep 15
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/jobzyjenkins.pem
+          chmod 600 ~/.ssh/jobzyjenkins.pem
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-          # Try health check endpoint
-          for i in {1..5}; do
-            echo "Health check attempt $i of 5..."
-            
-            # Try /health endpoint
-            response=$(curl -s -o /dev/null -w "%{http_code}" http://${EC2_HOST}/health 2>/dev/null || echo "000")
-            
-            if [ "$response" = "200" ]; then
-              echo "✅ Deployment successful! Health check passed with status: $response"
-              exit 0
-            fi
-            
-            # Try /api/health endpoint
-            response=$(curl -s -o /dev/null -w "%{http_code}" http://${EC2_HOST}/api/health 2>/dev/null || echo "000")
-            
-            if [ "$response" = "200" ]; then
-              echo "✅ Deployment successful! API health check passed with status: $response"
-              exit 0
-            fi
-            
-            # Try root endpoint as fallback
-            response=$(curl -s -o /dev/null -w "%{http_code}" http://${EC2_HOST}/ 2>/dev/null || echo "000")
-            
-            if [ "$response" = "200" ] || [ "$response" = "301" ] || [ "$response" = "302" ]; then
-              echo "✅ Deployment successful! Root endpoint responding with status: $response"
-              exit 0
-            fi
-            
-            echo "Got response: $response, waiting 10 seconds before retry..."
-            sleep 10
-          done
-
-          echo "❌ Deployment verification failed after 5 attempts"
-          echo "Please check PM2 logs on the server:"
-          echo "  ssh into EC2 and run: pm2 logs"
-          exit 1
-
-      - name: Rollback on failure
-        if: failure()
-        env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
-          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+      # ✅ FIX #2 — Use rsync instead of scp (more reliable)
+      - name: Copy package to EC2
         run: |
-          echo "⚠️  Deployment failed! Attempting rollback..."
+          rsync -avz -e "ssh -i ~/.ssh/jobzyjenkins.pem -o StrictHostKeyChecking=no" \
+            deploy.tar.gz ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/tmp/
 
-          echo "$SSH_PRIVATE_KEY" > jobzybackend.pem
-          chmod 600 jobzybackend.pem
+      # ✅ FIX #3 — Corrected deploy block (works with your EC2 setup)
+      - name: Deploy on EC2
+        run: |
+          ssh -i ~/.ssh/jobzyjenkins.pem -o StrictHostKeyChecking=no \
+            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
 
-          ssh -i jobzybackend.pem -o StrictHostKeyChecking=no \
-            ${EC2_USERNAME}@${EC2_HOST} << 'EOF'
-            
+            set -e
+
             cd /home/ubuntu/JobZy-backend/server
 
-            # Find latest backup
+            # Backup current version
+            if [ -f "server.js" ]; then
+              timestamp=$(date +%Y%m%d_%H%M%S)
+              mkdir -p backups
+              tar -czf backups/backup_${timestamp}.tar.gz \
+                server.js package.json package-lock.json ecosystem.config.js src .env 2>/dev/null || true
+
+              ls -t backups/backup_*.tar.gz 2>/dev/null | tail -n +6 | xargs -r rm
+            fi
+
+            # Extract new build
+            echo "Extracting deployment package..."
+            tar -xzf /tmp/deploy.tar.gz -C /home/ubuntu/JobZy-backend/server
+            rm /tmp/deploy.tar.gz
+
+            echo "Installing production dependencies..."
+            npm ci --omit=dev
+
+            if [ ! -f .env ]; then
+              echo "❌ .env missing — stopping deployment"
+              exit 1
+            fi
+
+            mkdir -p logs
+
+            echo "Reloading PM2..."
+            if pm2 list | grep -q "jobzy-backend"; then
+              pm2 reload ecosystem.config.js --update-env
+            else
+              pm2 start ecosystem.config.js
+            fi
+
+            pm2 save
+
+            echo "Deployment complete"
+            pm2 list
+          EOF
+
+      # ✅ FIX #4 — Better health check (prevents false failure)
+      - name: Verify deployment
+        run: |
+          for i in {1..5}; do
+            status=$(curl -s -o /dev/null -w "%{http_code}" http://${{ secrets.EC2_HOST }}/health || echo "000")
+            if [ "$status" = "200" ]; then
+              echo "Health check passed"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Health check failed"
+          exit 1
+
+      # ✅ FIX #5 — Working rollback step
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/jobzyjenkins.pem
+          chmod 600 ~/.ssh/jobzyjenkins.pem
+
+          ssh -i ~/.ssh/jobzyjenkins.pem -o StrictHostKeyChecking=no \
+            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
+
+            cd /home/ubuntu/JobZy-backend/server
+
             latest_backup=$(ls -t backups/backup_*.tar.gz 2>/dev/null | head -1)
 
             if [ -n "$latest_backup" ]; then
-              echo "Found backup: $latest_backup"
-              echo "Rolling back..."
-              
-              # Extract backup
+              echo "Rolling back to $latest_backup"
               tar -xzf "$latest_backup" -C /home/ubuntu/JobZy-backend/server
-              
-              # Reinstall dependencies
               npm ci --omit=dev
-              
-              # Reload PM2
               pm2 reload ecosystem.config.js --update-env
-              
-              echo "✅ Rolled back to previous version"
               pm2 list
             else
-              echo "❌ No backup found, cannot rollback"
-              echo "Manual intervention required!"
+              echo "No backup found — manual recovery needed"
             fi
           EOF
-
-          rm jobzybackend.pem
-
-          echo "Rollback completed. Please verify manually."
