@@ -78,76 +78,69 @@ jobs:
           ssh -i jobzybackend.pem -o StrictHostKeyChecking=no \
             ${EC2_USERNAME}@${EC2_HOST} << 'EOF'
             
+            set -e  # Exit on error
+            
             # Navigate to app directory
             cd /home/ubuntu/JobZy-backend/server
-
-            # Fix ownership first (important!)
-            echo "Fixing directory ownership..."
-            sudo chown -R $USER:$USER /home/ubuntu/JobZy-backend
 
             # Backup current version
             if [ -f "server.js" ]; then
               timestamp=$(date +%Y%m%d_%H%M%S)
               mkdir -p backups
-              tar -czf backups/backup_${timestamp}.tar.gz server.js package.json ecosystem.config.js src .env 2>/dev/null || true
+              echo "Creating backup: backup_${timestamp}.tar.gz"
+              tar -czf backups/backup_${timestamp}.tar.gz \
+                server.js package.json package-lock.json ecosystem.config.js src .env 2>/dev/null || true
+              
               # Keep only last 5 backups
               ls -t backups/backup_*.tar.gz 2>/dev/null | tail -n +6 | xargs -r rm
             fi
 
-            # Extract new version (this will overwrite existing files)
-            echo "Extracting new deployment package..."
-            tar --overwrite -xzf /tmp/deploy.tar.gz -C /home/ubuntu/JobZy-backend/server
+            # Extract new version
+            echo "Extracting deployment package..."
+            tar -xzf /tmp/deploy.tar.gz -C /home/ubuntu/JobZy-backend/server
             rm /tmp/deploy.tar.gz
 
-            # Fix ownership after extraction
-            sudo chown -R $USER:$USER /home/ubuntu/JobZy-backend
-
-            # Install production dependencies on the server
-            echo ""
+            # Install production dependencies
             echo "Installing production dependencies..."
             npm ci --omit=dev
 
-            # Create .env file if needed (only on first deploy)
+            # Ensure .env exists (warn if missing)
             if [ ! -f .env ]; then
-              echo "Creating default .env file..."
-              echo "NODE_ENV=production" > .env
-              echo "PORT=3000" >> .env
-              echo "Please update .env with actual values!"
+              echo "⚠️  WARNING: .env file not found!"
+              echo "Please create .env file with production variables"
+              exit 1
             fi
 
             # Create logs directory
             mkdir -p logs
 
-            # Stop cron worker first (to avoid conflicts)
-            if pm2 describe jobzy-cron-worker > /dev/null 2>&1; then
-              echo "Stopping cron worker..."
-              sudo pm2 stop jobzy-cron-worker
-            fi
-
-            # Zero-downtime reload with PM2 for main app
-            if pm2 describe jobzy-backend > /dev/null 2>&1; then
-              echo "Reloading PM2 app (zero-downtime)..."
-              sudo pm2 reload ecosystem.config.js --only jobzy-backend --update-env
+            # Reload PM2 with zero-downtime (for both apps)
+            echo "Reloading PM2 applications..."
+            if pm2 list | grep -q "jobzy-backend"; then
+              echo "Zero-downtime reload..."
+              pm2 reload ecosystem.config.js --update-env
             else
-              echo "Starting new PM2 process..."
-              sudo pm2 start ecosystem.config.js --only jobzy-backend
-            fi
-
-            # Restart cron worker
-            if pm2 describe jobzy-cron-worker > /dev/null 2>&1; then
-              echo "Starting cron worker..."
-              sudo pm2 restart jobzy-cron-worker
-            else
-              sudo pm2 start ecosystem.config.js --only jobzy-cron-worker
+              echo "Starting PM2 for the first time..."
+              pm2 start ecosystem.config.js
             fi
 
             # Save PM2 process list
-            sudo pm2 save
+            pm2 save
+
+            # Wait for app to be ready
+            echo "Waiting for application to start..."
+            sleep 10
 
             # Display PM2 status
             echo ""
+            echo "✅ Deployment complete!"
             echo "Current PM2 Status:"
-            sudo pm2 list
+            pm2 list
+            
+            # Show recent logs
+            echo ""
+            echo "Recent logs:"
+            pm2 logs --lines 10 --nostream
             
           EOF
 
@@ -158,34 +151,44 @@ jobs:
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
         run: |
-          echo "Waiting for application to start..."
+          echo "Verifying deployment..."
           sleep 15
 
-          # Check if app responds via nginx (try multiple times)
-          for i in {1..3}; do
-            echo "Attempt $i of 3..."
+          # Try health check endpoint
+          for i in {1..5}; do
+            echo "Health check attempt $i of 5..."
+            
+            # Try /health endpoint
             response=$(curl -s -o /dev/null -w "%{http_code}" http://${EC2_HOST}/health 2>/dev/null || echo "000")
             
             if [ "$response" = "200" ]; then
-              echo "Deployment successful! App is responding with status: $response"
+              echo "✅ Deployment successful! Health check passed with status: $response"
               exit 0
             fi
             
-            # Try root endpoint if /health doesn't exist
-            if [ "$response" = "404" ]; then
-              response=$(curl -s -o /dev/null -w "%{http_code}" http://${EC2_HOST}/ 2>/dev/null || echo "000")
-              if [ "$response" = "200" ] || [ "$response" = "301" ] || [ "$response" = "302" ]; then
-                echo "Deployment successful! App is responding with status: $response"
-                exit 0
-              fi
+            # Try /api/health endpoint
+            response=$(curl -s -o /dev/null -w "%{http_code}" http://${EC2_HOST}/api/health 2>/dev/null || echo "000")
+            
+            if [ "$response" = "200" ]; then
+              echo "✅ Deployment successful! API health check passed with status: $response"
+              exit 0
             fi
             
-            echo "Got response: $response, waiting 5 seconds..."
-            sleep 5
+            # Try root endpoint as fallback
+            response=$(curl -s -o /dev/null -w "%{http_code}" http://${EC2_HOST}/ 2>/dev/null || echo "000")
+            
+            if [ "$response" = "200" ] || [ "$response" = "301" ] || [ "$response" = "302" ]; then
+              echo "✅ Deployment successful! Root endpoint responding with status: $response"
+              exit 0
+            fi
+            
+            echo "Got response: $response, waiting 10 seconds before retry..."
+            sleep 10
           done
 
-          echo "Deployment verification failed after 3 attempts"
-          echo "Please check PM2 logs on the server: sudo pm2 logs jobzy-backend"
+          echo "❌ Deployment verification failed after 5 attempts"
+          echo "Please check PM2 logs on the server:"
+          echo "  ssh into EC2 and run: pm2 logs"
           exit 1
 
       - name: Rollback on failure
@@ -195,7 +198,7 @@ jobs:
           EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
           SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
         run: |
-          echo "Attempting to rollback to previous version..."
+          echo "⚠️  Deployment failed! Attempting rollback..."
 
           echo "$SSH_PRIVATE_KEY" > jobzybackend.pem
           chmod 600 jobzybackend.pem
@@ -205,21 +208,30 @@ jobs:
             
             cd /home/ubuntu/JobZy-backend/server
 
-            # Fix ownership first (important!)
-            sudo chown -R $USER:$USER /home/ubuntu/JobZy-backend
-
             # Find latest backup
             latest_backup=$(ls -t backups/backup_*.tar.gz 2>/dev/null | head -1)
 
             if [ -n "$latest_backup" ]; then
               echo "Found backup: $latest_backup"
+              echo "Rolling back..."
+              
+              # Extract backup
               tar -xzf "$latest_backup" -C /home/ubuntu/JobZy-backend/server
+              
+              # Reinstall dependencies
               npm ci --omit=dev
-              sudo pm2 reload ecosystem.config.js --update-env
-              echo "Rolled back to previous version"
+              
+              # Reload PM2
+              pm2 reload ecosystem.config.js --update-env
+              
+              echo "✅ Rolled back to previous version"
+              pm2 list
             else
-              echo "No backup found, cannot rollback"
+              echo "❌ No backup found, cannot rollback"
+              echo "Manual intervention required!"
             fi
           EOF
 
           rm jobzybackend.pem
+
+          echo "Rollback completed. Please verify manually."
