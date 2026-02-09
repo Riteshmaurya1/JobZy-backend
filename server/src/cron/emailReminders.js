@@ -167,8 +167,7 @@ cron.schedule(INTERVIEW_CRON_SCHEDULE, async () => {
 logger.info(`✅ Interview reminder cron scheduled: ${INTERVIEW_CRON_SCHEDULE}`);
 
 // 📧 CRON 2: FOLLOW-UP REMINDER (Runs at 5 AM daily)
-// const FOLLOWUP_CRON_SCHEDULE = "0 5 * * *"; // ✅ Changed back to 5 AM
-const FOLLOWUP_CRON_SCHEDULE = "* * * * *"; // ✅ Changed back to 5 AM
+const FOLLOWUP_CRON_SCHEDULE = "0 5 * * *"; // ✅ Changed back to 5 AM
 
 cron.schedule(FOLLOWUP_CRON_SCHEDULE, async () => {
   logger.info("📧 [Follow-up Cron] Starting follow-up reminder check...");
