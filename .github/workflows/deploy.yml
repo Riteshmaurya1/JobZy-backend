@@ -66,92 +66,20 @@ jobs:
         with:
           name: deployment-package
 
-      - name: Deploy to EC2 via SSH
-        env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
-          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-        run: |
-          # Create SSH key file
-          echo "$SSH_PRIVATE_KEY" > jobzybackend.pem
-          chmod 600 jobzybackend.pem
+     - name: Test SSH Connection
+  env:
+    EC2_HOST: ${{ secrets.EC2_HOST }}
+    EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
+    SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+  run: |
+    echo "$SSH_PRIVATE_KEY" > jobzybackend.pem
+    chmod 600 jobzybackend.pem
 
-          # Copy deployment package to EC2
-          scp -i jobzybackend.pem -o StrictHostKeyChecking=no \
-            deploy.tar.gz ${EC2_USERNAME}@${EC2_HOST}:/tmp/
+    ssh -i jobzybackend.pem -o StrictHostKeyChecking=no \
+      ${EC2_USERNAME}@${EC2_HOST} "echo 'SSH WORKS FROM GITHUB ACTIONS'"
 
-          # SSH into EC2 and deploy
-          ssh -i jobzybackend.pem -o StrictHostKeyChecking=no \
-            ${EC2_USERNAME}@${EC2_HOST} << 'EOF'
-            
-            set -e  # Exit on error
-            
-            # Navigate to app directory
-            cd /home/ubuntu/JobZy-backend/server
+    rm jobzybackend.pem
 
-            # Backup current version
-            if [ -f "server.js" ]; then
-              timestamp=$(date +%Y%m%d_%H%M%S)
-              mkdir -p backups
-              echo "Creating backup: backup_${timestamp}.tar.gz"
-              tar -czf backups/backup_${timestamp}.tar.gz \
-                server.js package.json package-lock.json ecosystem.config.js src .env 2>/dev/null || true
-              
-              # Keep only last 5 backups
-              ls -t backups/backup_*.tar.gz 2>/dev/null | tail -n +6 | xargs -r rm
-            fi
-
-            # Extract new version
-            echo "Extracting deployment package..."
-            tar -xzf /tmp/deploy.tar.gz -C /home/ubuntu/JobZy-backend/server
-            rm /tmp/deploy.tar.gz
-
-            # Install production dependencies
-            echo "Installing production dependencies..."
-            npm ci --omit=dev
-
-            # Ensure .env exists (warn if missing)
-            if [ ! -f .env ]; then
-              echo "⚠️  WARNING: .env file not found!"
-              echo "Please create .env file with production variables"
-              exit 1
-            fi
-
-            # Create logs directory
-            mkdir -p logs
-
-            # Reload PM2 with zero-downtime (for both apps)
-            echo "Reloading PM2 applications..."
-            if pm2 list | grep -q "jobzy-backend"; then
-              echo "Zero-downtime reload..."
-              pm2 reload ecosystem.config.js --update-env
-            else
-              echo "Starting PM2 for the first time..."
-              pm2 start ecosystem.config.js
-            fi
-
-            # Save PM2 process list
-            pm2 save
-
-            # Wait for app to be ready
-            echo "Waiting for application to start..."
-            sleep 10
-
-            # Display PM2 status
-            echo ""
-            echo "✅ Deployment complete!"
-            echo "Current PM2 Status:"
-            pm2 list
-            
-            # Show recent logs
-            echo ""
-            echo "Recent logs:"
-            pm2 logs --lines 10 --nostream
-            
-          EOF
-
-          # Cleanup
-          rm jobzybackend.pem
 
       - name: Verify deployment
         env:
