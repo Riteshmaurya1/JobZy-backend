@@ -3,10 +3,10 @@ const PORT = process.env.PORT || 3000;
 
 const express = require("express");
 const app = express();
-app.set('trust proxy', 1);
 const cors = require("cors");
 const helmet = require("helmet");
 const logger = require("./src/logger/logger");
+app.set('trust proxy', 1);
 
 const db = require("./src/config/db-connection");
 const globalErrorHandler = require("./src/middleware/globalErrorHandler");
