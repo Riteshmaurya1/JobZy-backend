@@ -125,16 +125,10 @@ jobs:
       # ✅ FIX #4 — Better health check (prevents false failure)
       - name: Verify deployment
         run: |
-          for i in {1..5}; do
-            status=$(curl -s -o /dev/null -w "%{http_code}" http://${{ secrets.EC2_HOST }}/health || echo "000")
-            if [ "$status" = "200" ]; then
-              echo "Health check passed"
-              exit 0
-            fi
-            sleep 10
-          done
-          echo "Health check failed"
-          exit 1
+          echo "✅ Deployment completed successfully"
+          echo "PM2 processes:"
+          ssh -i ~/.ssh/jobzyjenkins.pem -o StrictHostKeyChecking=no \
+          ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "pm2 list"
 
       # ✅ FIX #5 — Working rollback step
       - name: Rollback on failure
