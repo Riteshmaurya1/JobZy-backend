@@ -18,23 +18,24 @@ const sequelize = new Sequelize(
       acquire: 30000,
       idle: 10000,
     },
-    // dialectOptions: {
-    //   ssl:
-    //     process.env.NODE_ENV === "production"
-    //       ? {
-    //           require: true,
-    //           rejectUnauthorized: false,
-    //         }
-    //       : false,
-    // },
     dialectOptions: {
-      ssl: isRDS
-        ? {
-            require: true,
-            rejectUnauthorized: false, // OK for now
-          }
-        : false,
+      ssl:
+        process.env.NODE_ENV === "production"
+          ? {
+              require: true,
+              rejectUnauthorized: false,
+            }
+          : false,
     },
+    // For the rds
+    // dialectOptions: {
+    //   ssl: isRDS
+    //     ? {
+    //         require: true,
+    //         rejectUnauthorized: false, // OK for now
+    //       }
+    //     : false,
+    // },
   },
 );
 

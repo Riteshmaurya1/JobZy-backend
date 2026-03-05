@@ -4,7 +4,7 @@ const globalErrorHandler = (err, req, res, next) => {
   const statusCode = err.statusCode || 500;
   const isProd = process.env.NODE_ENV === "production";
 
-  // 🔴 LOG ERROR (important)
+  // LOG ERROR DETAILS
   logger.error(
     {
       err: {

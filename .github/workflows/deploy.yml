@@ -64,20 +64,20 @@ jobs:
       - name: Setup SSH Key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/jobzyjenkins.pem
-          chmod 600 ~/.ssh/jobzyjenkins.pem
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/jobzy-backend-holi.pem
+          chmod 600 ~/.ssh/jobzy-backend-holi.pem
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
       # ✅ FIX #2 — Use rsync instead of scp (more reliable)
       - name: Copy package to EC2
         run: |
-          rsync -avz -e "ssh -i ~/.ssh/jobzyjenkins.pem -o StrictHostKeyChecking=no" \
+          rsync -avz -e "ssh -i ~/.ssh/jobzy-backend-holi.pem -o StrictHostKeyChecking=no" \
             deploy.tar.gz ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/tmp/
 
       # ✅ FIX #3 — Corrected deploy block (works with your EC2 setup)
       - name: Deploy on EC2
         run: |
-          ssh -i ~/.ssh/jobzyjenkins.pem -o StrictHostKeyChecking=no \
+          ssh -i ~/.ssh/jobzy-backend-holi.pem -o StrictHostKeyChecking=no \
             ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
 
             set -e
@@ -127,17 +127,17 @@ jobs:
         run: |
           echo "✅ Deployment completed successfully"
           echo "PM2 processes:"
-          ssh -i ~/.ssh/jobzyjenkins.pem -o StrictHostKeyChecking=no \
+          ssh -i ~/.ssh/jobzy-backend-holi.pem -o StrictHostKeyChecking=no \
           ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "pm2 list"
 
       # ✅ FIX #5 — Working rollback step
       - name: Rollback on failure
         if: failure()
         run: |
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/jobzyjenkins.pem
-          chmod 600 ~/.ssh/jobzyjenkins.pem
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/jobzy-backend-holi.pem
+          chmod 600 ~/.ssh/jobzy-backend-holi.pem
 
-          ssh -i ~/.ssh/jobzyjenkins.pem -o StrictHostKeyChecking=no \
+          ssh -i ~/.ssh/jobzy-backend-holi.pem -o StrictHostKeyChecking=no \
             ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
 
             cd /home/ubuntu/JobZy-backend/server

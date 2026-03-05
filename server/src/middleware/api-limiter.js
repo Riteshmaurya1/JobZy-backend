@@ -3,7 +3,7 @@ const rateLimit = require("express-rate-limit");
 // Define API rate limiting middleware
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 min
-  max: 100,
+  max: 500,
   message: {
     success: false,
     message: "Too many requests. Please slow down.",
@@ -15,7 +15,7 @@ const apiLimiter = rateLimit({
 // Define authentication rate limiting middleware
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 min
-  max: 5,
+  max: 500,
   message: {
     success: false,
     message: "Too many authentication attempts. Try again after 15 minutes.",
@@ -28,7 +28,7 @@ const authLimiter = rateLimit({
 // Define upload rate limiting middleware
 const uploadLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 20,
+  max: 100,
   message: {
     success: false,
     message: "Upload limit reached. Please try again later",
@@ -40,7 +40,7 @@ const uploadLimiter = rateLimit({
 // Define payment rate limiting middleware
 const paymentLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10,
+  max: 100,
   message: {
     success: false,
     message: "Too many payment requests. Please contact support",
