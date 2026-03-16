@@ -11,9 +11,9 @@ const validateATSCheck = [
     .trim()
     .notEmpty()
     .withMessage("Job role is required")
-    .isIn(["frontend", "backend", "fullstack", "devops"])
+    .isIn(["Frontend Developer", "Backend Developer", "Fullstack Developer", "DevOps Engineer"])
     .withMessage(
-      "Job role must be one of: frontend, backend, fullstack, devops",
+      "Job role must be one of: Frontend Developer, Backend Developer, Fullstack Developer, DevOps Engineer",
     ),
 
   // File validation is done in multer fileFilter

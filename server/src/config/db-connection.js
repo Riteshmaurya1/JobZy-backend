@@ -18,15 +18,18 @@ const sequelize = new Sequelize(
       acquire: 30000,
       idle: 10000,
     },
-    dialectOptions: {
-      ssl:
-        process.env.NODE_ENV === "production"
-          ? {
-              require: true,
-              rejectUnauthorized: false,
-            }
-          : false,
-    },
+
+    // For local development with self-signed certs, we disable SSL verification. In production, this should be properly configured.
+    // dialectOptions: {
+    //   ssl:
+    //     process.env.NODE_ENV === "production"
+    //       ? {
+    //           require: true,
+    //           rejectUnauthorized: false,
+    //         }
+    //       : false,
+    // },
+
     // For the rds
     // dialectOptions: {
     //   ssl: isRDS
@@ -36,6 +39,14 @@ const sequelize = new Sequelize(
     //       }
     //     : false,
     // },
+
+    // For Aivon
+    dialectOptions: {
+      ssl: { 
+        require: true,
+        rejectUnauthorized: false, // OK for now
+      },
+    },
   },
 );
 
