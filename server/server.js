@@ -6,7 +6,7 @@ const app = express();
 const cors = require("cors");
 const helmet = require("helmet");
 const logger = require("./src/logger/logger");
-app.set('trust proxy', 1);
+app.set("trust proxy", 1);
 
 const db = require("./src/config/db-connection");
 const globalErrorHandler = require("./src/middleware/globalErrorHandler");
@@ -75,7 +75,6 @@ const corsOptions = {
   maxAge: 86400,
 };
 
-
 // const corsOptions = {
 //   origin: function (origin, callback) {
 //     console.log('CORS origin:', origin, 'NODE_ENV:', process.env.NODE_ENV);
@@ -109,9 +108,7 @@ const corsOptions = {
 //   maxAge: 86400,
 // };
 
-
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
 
 // Body parser
 app.use(express.json());
@@ -196,7 +193,7 @@ app.use(globalErrorHandler);
 (async () => {
   try {
     if (process.env.NODE_ENV === "development") {
-      await db.sync({ alter: true }); 
+      await db.sync({ alter: true });
     } else {
       await db.sync();
     }
