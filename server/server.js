@@ -36,70 +36,38 @@ const allowedOrigins = {
   production: ["https://jobzy.site", "https://www.jobzy.site"],
 };
 
-// const corsOptions = {
-//   origin: function (origin, callback) {
-//     if (!origin) {
-//       return callback(null, true);
-//     }
-
-//     const allowedList = isDevelopment
-//       ? allowedOrigins.development
-//       : allowedOrigins.production;
-
-//     // In development, allow all localhost origins and file:// protocol
-//     if (isDevelopment) {
-//       if (
-//         origin.startsWith("http://localhost") ||
-//         origin.startsWith("http://127.0.0.1") ||
-//         origin === "file://"
-//       ) {
-//         return callback(null, true);
-//       }
-//     }
-
-//     // In production, only allow specific origins
-//     if (allowedList.includes(origin)) {
-//       return callback(null, true);
-//     }
-
-//     // Log unauthorized CORS attempts in production only
-//     if (isProduction) {
-//       console.warn(`CORS blocked request from origin: ${origin}`);
-//     }
-
-//     callback(new Error("Not allowed by CORS"));
-//   },
-//   credentials: true,
-//   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-//   allowedHeaders: ["Content-Type", "Authorization"],
-//   maxAge: 86400,
-// };
 const corsOptions = {
   origin: function (origin, callback) {
-    console.log('CORS origin:', origin, 'NODE_ENV:', process.env.NODE_ENV);
-
     if (!origin) {
       return callback(null, true);
     }
 
-    if (process.env.NODE_ENV === "production") {
-      if (origin === "https://jobzy.site" || origin === "https://www.jobzy.site") {
+    const allowedList = isDevelopment
+      ? allowedOrigins.development
+      : allowedOrigins.production;
+
+    // In development, allow all localhost origins and file:// protocol
+    if (isDevelopment) {
+      if (
+        origin.startsWith("http://localhost") ||
+        origin.startsWith("http://127.0.0.1") ||
+        origin === "file://"
+      ) {
         return callback(null, true);
       }
-      console.warn(`CORS blocked request from origin: ${origin}`);
-      return callback(new Error("Not allowed by CORS"));
     }
 
-    // development: allow localhost
-    if (
-      origin.startsWith("http://localhost") ||
-      origin.startsWith("http://127.0.0.1") ||
-      origin === "file://"
-    ) {
+    // In production, only allow specific origins
+    if (allowedList.includes(origin)) {
       return callback(null, true);
     }
 
-    return callback(new Error("Not allowed by CORS"));
+    // Log unauthorized CORS attempts in production only
+    if (isProduction) {
+      console.warn(`CORS blocked request from origin: ${origin}`);
+    }
+
+    callback(new Error("Not allowed by CORS"));
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
@@ -108,8 +76,41 @@ const corsOptions = {
 };
 
 
+// const corsOptions = {
+//   origin: function (origin, callback) {
+//     console.log('CORS origin:', origin, 'NODE_ENV:', process.env.NODE_ENV);
+
+//     if (!origin) {
+//       return callback(null, true);
+//     }
+
+//     if (process.env.NODE_ENV === "production") {
+//       if (origin === "https://jobzy.site" || origin === "https://www.jobzy.site") {
+//         return callback(null, true);
+//       }
+//       console.warn(`CORS blocked request from origin: ${origin}`);
+//       return callback(new Error("Not allowed by CORS"));
+//     }
+
+//     // development: allow localhost
+//     if (
+//       origin.startsWith("http://localhost") ||
+//       origin.startsWith("http://127.0.0.1") ||
+//       origin === "file://"
+//     ) {
+//       return callback(null, true);
+//     }
+
+//     return callback(new Error("Not allowed by CORS"));
+//   },
+//   credentials: true,
+//   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+//   allowedHeaders: ["Content-Type", "Authorization"],
+//   maxAge: 86400,
+// };
+
+
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
 
 // Body parser
 app.use(express.json());
