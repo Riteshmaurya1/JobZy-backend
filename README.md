@@ -255,8 +255,8 @@ Workflow file: `.github/workflows/`
 **Ritesh Maurya**
 
 [![GitHub](https://img.shields.io/badge/GitHub-Riteshmaurya1-181717?style=flat-square&logo=github)](https://github.com/Riteshmaurya1)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=flat-square&logo=linkedin)](https://linkedin.com/in/riteshmaurya)
-[![Instagram](https://img.shields.io/badge/Instagram-@jobzy.in-E4405F?style=flat-square&logo=instagram)](https://instagram.com/jobzy.in)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=flat-square&logo=https://www.linkedin.com/in/ritesh-maurya-69a50a25b)
+[![Instagram](https://img.shields.io/badge/Instagram-@jobzy.in-E4405F?style=flat-square&logo=instagram)](https://instagram.com/jobzy.site)
 
 *Backend Developer | Building JobZy — Smart Job Tracking for Indian Developers*
 
